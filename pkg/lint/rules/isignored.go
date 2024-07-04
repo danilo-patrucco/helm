@@ -24,4 +24,3 @@ func IsIgnored(errorMessage string, patterns map[string][]string) bool {
     }
     return false
 }
-
