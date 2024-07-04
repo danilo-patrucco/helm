@@ -93,16 +93,38 @@ func newLintCmd(out io.Writer) *cobra.Command {
 				}
 			}
 
+			var ignorePatterns []string
+			if lintIgnoreFile != "" {
+				ignorePatterns, err = rules.ParseIgnoreFile(lintIgnoreFile)
+				if err != nil {
+					return fmt.Errorf("failed to parse .helmlintignore file: %v", err)
+				}
+			}
+
 			var message strings.Builder
 			failed := 0
 
 			for _, path := range paths {
+				if rules.IsIgnored(path, ignorePatterns) {
+					continue 
+				}
+
 				result := client.Run([]string{path}, vals)
-				filteredResult := FilterIgnoredMessages(result, ignorePatterns)
-				
+
+				hasWarningsOrErrors := action.HasWarningsOrErrors(result)
+				if hasWarningsOrErrors {
+					errorsOrWarnings++
+				}
+				if client.Quiet && !hasWarningsOrErrors {
+					continue
+				}
+
 				fmt.Fprintf(&message, "==> Linting %s\n", path)
-				for _, msg := range filteredResult.Messages {
-					fmt.Fprintf(&message, "%s\n", msg)
+
+				if len(result.Messages) == 0 {
+					for _, err := range result.Errors {
+						fmt.Fprintf(&message, "Error %s\n", err)
+					}
 				}
 				if len(filteredResult.Errors) != 0 {
 					failed++
@@ -128,35 +150,9 @@ func newLintCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&client.WithSubcharts, "with-subcharts", false, "lint dependent charts")
 	f.BoolVar(&client.Quiet, "quiet", false, "print only warnings and errors")
 	f.StringVar(&kubeVersion, "kube-version", "", "Kubernetes version used for capabilities and deprecation checks")
-	f.StringVar(&lintIgnoreFile, "lint-ignore-file", "", "path to .helmlintignore file to specify ignore patterns")
+	f.StringVar(&lintIgnoreFile, "lint-ignore-file", "", "path to .helmlintignore file to specify ignore patterns") // Add the flag for .helmlintignore file
+	addValueOptionsFlags(f, valueOpts)
 
 	return cmd
 }
 
-func FilterIgnoredMessages(result *action.LintResult, patterns map[string][]string) *action.LintResult {
-	filteredMessages := make([]support.Message, 0)
-	for _, msg := range result.Messages {
-		fmt.Printf("test-- ", msg, " --test")
-		ignore := false
-		for path, pathPatterns := range patterns {
-			fmt.Printf("test-- ", path, " --test")
-			cleanedPath := filepath.Clean(path)
-			if strings.Contains(msg.Path, cleanedPath) {
-				for _, pattern := range pathPatterns {
-					if strings.Contains(msg.Err.Error(), pattern) {
-						debug("Ignoring message: [%s] %s\n", msg.Path, msg.Err.Error())
-						ignore = true
-						break
-					}
-				}
-			}
-			if ignore {
-				break
-			}
-		}
-		if !ignore {
-			filteredMessages = append(filteredMessages, msg)
-		}
-	}
-	return &action.LintResult{Messages: filteredMessages}
-}
