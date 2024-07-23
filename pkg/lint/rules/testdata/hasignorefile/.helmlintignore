@@ -1,0 +1,3 @@
+# .helmlintignore
+gitlab/charts/gitlab/charts/webservice/templates/service.yaml <include "fullname" .>
+gitlab/charts/gitlab/charts/webservice/templates/service.yaml <include "lastname" .>

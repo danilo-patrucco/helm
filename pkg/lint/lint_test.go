@@ -36,6 +36,7 @@ const badYamlFileDir = "rules/testdata/albatross"
 const goodChartDir = "rules/testdata/goodone"
 const subChartValuesDir = "rules/testdata/withsubchart"
 const malformedTemplate = "rules/testdata/malformed-template"
+const ignoreFileExists = "rules/testdata/hasignorefile"
 
 func TestBadChart(t *testing.T) {
 	m := All(badChartDir, values, namespace, strict).Messages
@@ -168,6 +169,16 @@ func TestMalformedTemplate(t *testing.T) {
 		}
 		if !strings.Contains(m[0].Err.Error(), "invalid character '{'") {
 			t.Errorf("All didn't have the error for invalid character '{'")
+		}
+	}
+}
+
+func TestIgnoreFileExists(t *testing.T) {
+	m := All(ignoreFileExists, values, namespace, strict).Messages
+	if len(m) != 0 {
+		t.Error("All returned linter messages when it shouldn't have")
+		for i, msg := range m {
+			t.Logf("Message %d: %s", i, msg)
 		}
 	}
 }

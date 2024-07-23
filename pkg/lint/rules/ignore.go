@@ -29,5 +29,9 @@ func ParseIgnoreFile(filePath string) (map[string][]string, error) {
 		}
 	}
 
+	// TODO: handle "not a valid ignore file" case - don't exit program, do log a warning
+
+	// Q: What happens if we add something to patterns that's not a valid path?
+
 	return patterns, scanner.Err()
 }
