@@ -18,8 +18,8 @@ package lint
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
+    "log"
+    "io/ioutil"
 	"path/filepath"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/lint/rules"

@@ -144,7 +144,7 @@ func FilterIgnoredMessages(result *action.LintResult, patterns map[string][]stri
 			if strings.Contains(msg.Path, cleanedPath) {
 				for _, pattern := range pathPatterns {
 					if strings.Contains(msg.Err.Error(), pattern) {
-						fmt.Printf("Ignoring message: [%s] %s\n", msg.Path, msg.Err.Error())
+						debug("Ignoring message: [%s] %s\n", msg.Path, msg.Err.Error())
 						ignore = true
 						break
 					}
