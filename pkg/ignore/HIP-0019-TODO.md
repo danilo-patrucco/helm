@@ -20,6 +20,7 @@ flowchart LR
 ## TODO
 
 1. search expected paths in order for file
+   2. see [XDG lib for hints](https://github.com/adrg/xdg)
    2. What are the expected paths?
       3. ~/.lintignorefile
       4. ./chart-path/.lintignorefile
