@@ -24,6 +24,7 @@ flowchart LR
    2. What are the expected paths?
       3. ~/.lintignorefile
       4. ./chart-path/.lintignorefile
+   2. Should we layer the ignore files or respect only the single ignore file closest to the linted chart?
 2. default to finding the file in the above paths
 3. explicit `--lint-ignore-file=filePathHere` should take precedence
 
