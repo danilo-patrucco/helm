@@ -18,22 +18,22 @@ package lint
 
 import (
 	"fmt"
-    "log"
-    "io/ioutil"
+	"io/ioutil"
+	"log"
 	"path/filepath"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/lint/rules"
 	"helm.sh/helm/v3/pkg/lint/support"
 )
 func All(basedir string, values map[string]interface{}, namespace string, _ bool) support.Linter {
-	return AllWithKubeVersion(basedir, values, namespace, nil, "")
+	return AllWithKubeVersion(basedir, values, namespace, nil, nil)
 }
-func AllWithKubeVersion(basedir string, values map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion, lintIgnoreFile string) support.Linter {
+func AllWithKubeVersion(basedir string, values map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion, lintIgnoreFile *string) support.Linter {
 	chartDir, _ := filepath.Abs(basedir)
 	var ignorePatterns map[string][]string
 	var err error
-	if lintIgnoreFile != "" {
-		ignorePatterns, err = rules.ParseIgnoreFile(lintIgnoreFile)
+	if lintIgnoreFile != nil {
+		ignorePatterns, err = rules.ParseIgnoreFile(*lintIgnoreFile)
 		for key, value := range ignorePatterns {
 			fmt.Printf("Pattern: %s, Error: %s\n", key, value)
 		}

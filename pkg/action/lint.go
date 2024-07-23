@@ -20,7 +20,7 @@ type Lint struct {
     WithSubcharts bool
     Quiet         bool
     KubeVersion   *chartutil.KubeVersion
-    IgnoreFilePath string
+    IgnoreFilePath *string
 }
 type LintResult struct {
     TotalChartsLinted int
@@ -64,7 +64,7 @@ func HasWarningsOrErrors(result *LintResult) bool {
 	return len(result.Errors) > 0
 }
 
-func lintChart(path string, vals map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion, ignoreFilePath string) (support.Linter, error) {
+func lintChart(path string, vals map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion, ignoreFilePath *string) (support.Linter, error) {
     var chartPath string
     linter := support.Linter{}
 
