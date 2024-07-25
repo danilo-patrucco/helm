@@ -15,6 +15,7 @@ import (
 
 // Lint is the action for checking that the semantics of a chart are well-formed.
 type Lint struct {
+<<<<<<< HEAD
     Strict        bool
     Namespace     string
     WithSubcharts bool
@@ -22,6 +23,18 @@ type Lint struct {
     KubeVersion   *chartutil.KubeVersion
     IgnoreFilePath *string
 }
+=======
+	Strict        bool
+	Namespace     string
+	WithSubcharts bool
+	Quiet         bool
+	KubeVersion   *chartutil.KubeVersion
+	IgnoreFilePath string
+}
+
+
+// LintResult is the result of Lint
+>>>>>>> 8cf9e820 (fixed issues in the lint action script)
 type LintResult struct {
     TotalChartsLinted int
     Messages          []support.Message
@@ -30,11 +43,27 @@ type LintResult struct {
 func NewLint() *Lint {
     return &Lint{}
 }
+<<<<<<< HEAD
 func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
     lowestTolerance := support.ErrorSev
     if l.Strict {
         lowestTolerance = support.WarningSev
     }
+=======
+
+func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
+	lowestTolerance := support.ErrorSev
+	if l.Strict {
+		lowestTolerance = support.WarningSev
+	}
+	result := &LintResult{}
+	for _, path := range paths {
+		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion, l.IgnoreFilePath)
+		if err != nil {
+			result.Errors = append(result.Errors, err)
+			continue
+		}
+>>>>>>> 8cf9e820 (fixed issues in the lint action script)
 
     result := &LintResult{}
     for _, path := range paths {
@@ -64,9 +93,15 @@ func HasWarningsOrErrors(result *LintResult) bool {
 	return len(result.Errors) > 0
 }
 
+<<<<<<< HEAD
 func lintChart(path string, vals map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion, ignoreFilePath *string) (support.Linter, error) {
     var chartPath string
     linter := support.Linter{}
+=======
+func lintChart(path string, vals map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion, ignoreFilePath string) (support.Linter, error) {
+	var chartPath string
+	linter := support.Linter{}
+>>>>>>> 8cf9e820 (fixed issues in the lint action script)
 
     if strings.HasSuffix(path, ".tgz") || strings.HasSuffix(path, ".tar.gz") {
         tempDir, err := os.MkdirTemp("", "helm-lint")
@@ -98,8 +133,17 @@ func lintChart(path string, vals map[string]interface{}, namespace string, kubeV
         chartPath = path
     }
 
+<<<<<<< HEAD
     if _, err := os.Stat(filepath.Join(chartPath, "Chart.yaml")); err != nil {
         return linter, errors.Wrap(err, "Chart.yaml file not found in chart")
     }
     return lint.AllWithKubeVersion(chartPath, vals, namespace, kubeVersion, ignoreFilePath), nil
+=======
+	// Guard: Error out if this is not a chart.
+	if _, err := os.Stat(filepath.Join(chartPath, "Chart.yaml")); err != nil {
+		return linter, errors.Wrap(err, "unable to check Chart.yaml file in chart")
+	}
+
+	return lint.AllWithKubeVersion(chartPath, vals, namespace, kubeVersion, ignoreFilePath), nil
+>>>>>>> 8cf9e820 (fixed issues in the lint action script)
 }
