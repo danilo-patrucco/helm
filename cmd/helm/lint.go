@@ -101,6 +101,14 @@ func newLintCmd(out io.Writer) *cobra.Command {
 				}
 			}
 
+			var ignorePatterns []string
+			if lintIgnoreFile != "" {
+				ignorePatterns, err = rules.ParseIgnoreFile(lintIgnoreFile)
+				if err != nil {
+					return fmt.Errorf("failed to parse .helmlintignore file: %v", err)
+				}
+			}
+
 			var message strings.Builder
 			failed := 0
 
@@ -132,6 +140,11 @@ func newLintCmd(out io.Writer) *cobra.Command {
 						fmt.Fprintf(&message, "Error: %s\n", err)
 					}
 				}
+
+				if len(result.Errors) != 0 {
+					failed++
+				}
+
 				fmt.Fprint(&message, "\n")
 			}
 
