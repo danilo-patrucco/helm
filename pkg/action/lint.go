@@ -20,7 +20,6 @@ type Lint struct {
     Quiet         bool
     KubeVersion   *chartutil.KubeVersion
     IgnoreFilePath string
-    Debug bool
 }
 type LintResult struct {
     TotalChartsLinted int
