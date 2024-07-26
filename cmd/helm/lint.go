@@ -95,19 +95,11 @@ func newLintCmd(out io.Writer) *cobra.Command {
 			errorsOrWarnings := 0
 
 			for _, path := range paths {
-				// try to build lint ignorer from available helm lint ignore file
-				var ignorer *lint.Ignorer
-				if lintIgnoreFilePath != "" {
-					debug("\nUsing ignore file: %s\n", lintIgnoreFilePath)
-					ignorer = lint.NewIgnorer(lintIgnoreFilePath)
-				} else {
-					lintIgnoreFilePath = filepath.Join(path, lint.DefaultIgnoreFileName)
-					debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", lintIgnoreFilePath)
-					ignorer = lint.NewIgnorer(lint.DefaultIgnoreFileName)
-				}
-
 				// lint the file
 				result := client.Run([]string{path}, vals)
+
+				// try to build lint ignorer from available helm lint ignore file
+				ignorer := lint.NewIgnorer(path, lintIgnoreFilePath)
 
 				// discard ignored messages and errors
 				result.Messages = ignorer.FilterMessages(result.Messages)
