@@ -17,8 +17,16 @@ type Ignorer struct {
 
 const DefaultIgnoreFileName = ".helmlintignore"
 
-func NewIgnorer(ignoreFilePath string) *Ignorer {
+func NewIgnorer(chartPath, ignoreFilePath string) *Ignorer {
 	ignorer := &Ignorer{}
+
+
+	if ignoreFilePath == "" {
+		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
+		ignorer.debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", ignoreFilePath)
+	}
+
+	ignorer.debug("\nUsing ignore file: %s\n", ignoreFilePath)
 	ignorer.loadPatternsFromFilePath(ignoreFilePath)
 	return ignorer
 }
