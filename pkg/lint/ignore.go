@@ -2,7 +2,6 @@ package lint
 
 import (
 	"bufio"
-	"fmt"
 	"helm.sh/helm/v3/pkg/lint/support"
 	"log"
 	"os"
@@ -10,22 +9,27 @@ import (
 	"strings"
 )
 
-var Debug bool
-
 type Ignorer struct {
 	Patterns map[string][]string
+	debug func(string, ...interface{})
 }
 
-func NewIgnorer(ignoreFilePath string) (*Ignorer, error) {
-	patterns, err := parseFromFilePath(ignoreFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ignore file: %w", err)
+const DefaultIgnoreFileName = ".helmlintignore"
+
+func NewIgnorer(chartPath, ignoreFilePath string, debugFn func(string, ...interface{})) *Ignorer {
+	ignorer := &Ignorer{ debug: debugFn }
+
+	if ignoreFilePath == "" {
+		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
+		ignorer.debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", ignoreFilePath)
 	}
 
-	return &Ignorer{ Patterns: patterns }, nil
+	ignorer.debug("\nUsing ignore file: %s\n", ignoreFilePath)
+	ignorer.loadPatternsFromFilePath(ignoreFilePath)
+	return ignorer
 }
 
-func (i *Ignorer) FilterIgnoredErrors(errors []error) []error {
+func (i *Ignorer) FilterErrors(errors []error) []error {
 	keepers := make([]error, 0)
 	for _, err := range errors {
 		if !i.match(err.Error()) {
@@ -36,7 +40,7 @@ func (i *Ignorer) FilterIgnoredErrors(errors []error) []error {
 	return keepers
 }
 
-func (i *Ignorer) FilterIgnoredMessages(messages []support.Message) []support.Message {
+func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
 	keepers := make([]support.Message, 0)
 	for _, msg := range messages {
 		if !i.match(msg.Err.Error()) {
@@ -49,24 +53,24 @@ func (i *Ignorer) FilterIgnoredMessages(messages []support.Message) []support.Me
 func (i *Ignorer) match(errText string) bool {
 	errorFullPath := extractFullPathFromError(errText)
 	if len(errorFullPath) == 0 {
-		debug("Unable to find a path for error, guess we'll keep it: %s", errText)
+		i.debug("Unable to find a path for error, guess we'll keep it: %s", errText)
 		return false
 	}
 
-	debug("Extracted full path: %s\n", errorFullPath)
+	i.debug("Extracted full path: %s\n", errorFullPath)
 	for ignorablePath, pathPatterns := range i.Patterns {
 		cleanIgnorablePath := filepath.Clean(ignorablePath)
 		if strings.Contains(errorFullPath, cleanIgnorablePath) {
 			for _, pattern := range pathPatterns {
 				if strings.Contains(errText, pattern) {
-					debug("Ignoring error: [%s] %s\n\n", errorFullPath, errText)
+					i.debug("Ignoring error: [%s] %s\n\n", errorFullPath, errText)
 					return true
 				}
 			}
 		}
 	}
 
-	debug("keeping unignored error: [%s]", errText)
+	i.debug("keeping unignored error: [%s]", errText)
 	return false
 }
 
@@ -79,11 +83,14 @@ func extractFullPathFromError(errorString string) string {
 	return ""
 }
 
-func parseFromFilePath(filePath string) (map[string][]string, error) {
-	patterns := make(map[string][]string)
+func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
+	if i.Patterns == nil {
+		i.Patterns = make(map[string][]string)
+	}
+
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		i.debug("failed to open lint ignore file: %s", filePath)
 	}
 	defer func() {
 		err := file.Close()
@@ -99,27 +106,15 @@ func parseFromFilePath(filePath string) (map[string][]string, error) {
 			parts := strings.SplitN(line, " ", 2)
 			if len(parts) > 1 {
 				// Check if the key already exists and append to its slice
-				patterns[parts[0]] = append(patterns[parts[0]], parts[1])
+				i.Patterns[parts[0]] = append(i.Patterns[parts[0]], parts[1])
 			} else if len(parts) == 1 {
 				// Add an empty pattern if only the path is present
-				patterns[parts[0]] = append(patterns[parts[0]], "")
+				i.Patterns[parts[0]] = append(i.Patterns[parts[0]], "")
 			}
 		}
 	}
-
-	return patterns, scanner.Err()
+	return
 }
-
-// TODO: DELETE
-var logger = log.New(os.Stderr, "[debug] ", log.Lshortfile)
-func debug(format string, v ...interface{}) {
-	if Debug {
-		format = fmt.Sprintf("[debug] %s\n", format)
-		logger.Output(2, fmt.Sprintf(format, v...))
-	}
-}
-// END TODO: DELETE
-
 
 /* TODO HIP-0019
 - find ignore file path for a subchart
@@ -130,5 +125,4 @@ Later/never
 - XDG support
 - helm config file support
 - ignore file validation
--
 */
