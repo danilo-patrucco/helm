@@ -45,7 +45,6 @@ or recommendation, it will emit [WARNING] messages.
 
 func newLintCmd(out io.Writer) *cobra.Command {
 	client := action.NewLint()
-	client.Debug = settings.Debug
 	valueOpts := &values.Options{}
 	var kubeVersion string
 	var lintIgnoreFilePath string
