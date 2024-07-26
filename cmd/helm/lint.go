@@ -99,7 +99,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 				result := client.Run([]string{path}, vals)
 
 				// try to build lint ignorer from available helm lint ignore file
-				ignorer := lint.NewIgnorer(path, lintIgnoreFilePath)
+				ignorer := lint.NewIgnorer(path, lintIgnoreFilePath, debug)
 
 				// discard ignored messages and errors
 				result.Messages = ignorer.FilterMessages(result.Messages)
