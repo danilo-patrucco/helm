@@ -34,8 +34,6 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 )
 
-const defaultIgnoreFileName = ".helmlintignore"
-
 var longLintHelp = `
 This command takes a path to a chart and runs a series of tests to verify that
 the chart is well-formed.
@@ -44,8 +42,6 @@ If the linter encounters things that will cause the chart to fail installation,
 it will emit [ERROR] messages. If it encounters issues that break with convention
 or recommendation, it will emit [WARNING] messages.
 `
-
-var useTempFile = false
 
 func newLintCmd(out io.Writer) *cobra.Command {
 	client := action.NewLint()
@@ -99,19 +95,21 @@ func newLintCmd(out io.Writer) *cobra.Command {
 			errorsOrWarnings := 0
 
 			for _, path := range paths {
-				useTempFile = false
+				// try to build lint ignorer from available helm lint ignore file
+				var ignorer *lint.Ignorer
 				if lintIgnoreFilePath != "" {
 					debug("\nUsing ignore file: %s\n", lintIgnoreFilePath)
+					ignorer = lint.NewIgnorer(lintIgnoreFilePath)
 				} else {
-					lintIgnoreFilePath = filepath.Join(path, defaultIgnoreFileName)
+					lintIgnoreFilePath = filepath.Join(path, lint.DefaultIgnoreFileName)
 					debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", lintIgnoreFilePath)
-					useTempFile = true // Mark that a temporary file was used
+					ignorer = lint.NewIgnorer(lint.DefaultIgnoreFileName)
 				}
-				ignorer := lint.NewIgnorer(lintIgnoreFilePath)
-				if useTempFile {
-					lintIgnoreFilePath = ""
-				}
+
+				// lint the file
 				result := client.Run([]string{path}, vals)
+
+				// discard ignored messages and errors
 				result.Messages = ignorer.FilterMessages(result.Messages)
 				result.Errors = ignorer.FilterErrors(result.Errors)
 
