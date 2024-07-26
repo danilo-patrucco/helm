@@ -107,17 +107,13 @@ func newLintCmd(out io.Writer) *cobra.Command {
 					debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", lintIgnoreFilePath)
 					useTempFile = true // Mark that a temporary file was used
 				}
-				ignorer, err := lint.NewIgnorer(lintIgnoreFilePath)
-				if err != nil {
-					debug("Unable to load lint ignore rules: %s", err.Error())
-					ignorer = &lint.Ignorer{Patterns: map[string][]string{} }
-				}
+				ignorer := lint.NewIgnorer(lintIgnoreFilePath)
 				if useTempFile {
 					lintIgnoreFilePath = ""
 				}
 				result := client.Run([]string{path}, vals)
-				result.Messages = ignorer.FilterIgnoredMessages(result.Messages)
-				result.Errors = ignorer.FilterIgnoredErrors(result.Errors)
+				result.Messages = ignorer.FilterMessages(result.Messages)
+				result.Errors = ignorer.FilterErrors(result.Errors)
 
 				// If there are no errors/warnings and quiet flag is set
 				// go to the next chart

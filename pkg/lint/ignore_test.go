@@ -65,8 +65,8 @@ func TestFilterIgnoredMessages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ignorer := Ignorer{Patterns: tt.args.ignorePatterns}
-			got := ignorer.FilterIgnoredMessages(tt.args.messages)
-			assert.Equalf(t, tt.want, got, "FilterIgnoredMessages(%v, %v)", tt.args.messages, tt.args.ignorePatterns)
+			got := ignorer.FilterMessages(tt.args.messages)
+			assert.Equalf(t, tt.want, got, "FilterMessages(%v, %v)", tt.args.messages, tt.args.ignorePatterns)
 		})
 	}
 }
