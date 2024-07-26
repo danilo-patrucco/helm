@@ -2,7 +2,6 @@ package lint
 
 import (
 	"bufio"
-	"fmt"
 	"helm.sh/helm/v3/pkg/lint/support"
 	"log"
 	"os"
@@ -12,14 +11,13 @@ import (
 
 type Ignorer struct {
 	Patterns map[string][]string
-	DebugLogger *log.Logger
+	debug func(string, ...interface{})
 }
 
 const DefaultIgnoreFileName = ".helmlintignore"
 
-func NewIgnorer(chartPath, ignoreFilePath string) *Ignorer {
-	ignorer := &Ignorer{}
-
+func NewIgnorer(chartPath, ignoreFilePath string, debugFn func(string, ...interface{})) *Ignorer {
+	ignorer := &Ignorer{ debug: debugFn }
 
 	if ignoreFilePath == "" {
 		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
@@ -117,16 +115,6 @@ func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
 	}
 	return
 }
-
-func (i *Ignorer) debug(format string, v ...interface{}) {
-		format = fmt.Sprintf("[debug] %s\n", format)
-		if i.DebugLogger == nil {
-			var debugLogger = log.New(os.Stderr, "[debug] ", log.Lshortfile)
-			i.DebugLogger = debugLogger
-		}
-		i.DebugLogger.Output(2, fmt.Sprintf(format, v...))
-}
-
 
 /* TODO HIP-0019
 - find ignore file path for a subchart
