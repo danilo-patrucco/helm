@@ -25,70 +25,49 @@ func NewIgnorer(ignoreFilePath string) (*Ignorer, error) {
 	return &Ignorer{ Patterns: patterns }, nil
 }
 
-func (i *Ignorer) MatchMessage(msg support.Message) bool {
-	errText := msg.Err.Error()
-	errorFullPath := extractFullPathFromError(errText)
-	if len(errorFullPath) == 0 {
-		debug("Unable to find a path for message, guess we'll keep it: %s", errText)
-		return false
-	}
-	debug("Extracted full path: %s\n", errorFullPath)
-	for ignorablePath, pathPatterns := range i.Patterns {
-		cleanIgnorablePath := filepath.Clean(ignorablePath)
-		if strings.Contains(errorFullPath, cleanIgnorablePath) {
-			for _, pattern := range pathPatterns {
-				if strings.Contains(msg.Err.Error(), pattern) {
-					debug("Ignoring message: [%s] %s\n\n", errorFullPath, errText)
-					return true
-				}
-			}
+func (i *Ignorer) FilterIgnoredErrors(errors []error) []error {
+	keepers := make([]error, 0)
+	for _, err := range errors {
+		if !i.match(err.Error()) {
+			keepers = append(keepers, err)
 		}
 	}
-	debug("keeping unignored message: [%s]", errText)
-	return false
+
+	return keepers
 }
 
-func (i *Ignorer) MatchError(err error) bool {
-	errText := err.Error()
+func (i *Ignorer) FilterIgnoredMessages(messages []support.Message) []support.Message {
+	keepers := make([]support.Message, 0)
+	for _, msg := range messages {
+		if !i.match(msg.Err.Error()) {
+			keepers = append(keepers, msg)
+		}
+	}
+	return keepers
+}
+
+func (i *Ignorer) match(errText string) bool {
 	errorFullPath := extractFullPathFromError(errText)
 	if len(errorFullPath) == 0 {
 		debug("Unable to find a path for error, guess we'll keep it: %s", errText)
 		return false
 	}
+
 	debug("Extracted full path: %s\n", errorFullPath)
 	for ignorablePath, pathPatterns := range i.Patterns {
 		cleanIgnorablePath := filepath.Clean(ignorablePath)
 		if strings.Contains(errorFullPath, cleanIgnorablePath) {
 			for _, pattern := range pathPatterns {
-				if strings.Contains(err.Error(), pattern) {
+				if strings.Contains(errText, pattern) {
 					debug("Ignoring error: [%s] %s\n\n", errorFullPath, errText)
 					return true
 				}
 			}
 		}
 	}
+
 	debug("keeping unignored error: [%s]", errText)
 	return false
-}
-
-func (i *Ignorer) FilterIgnoredErrors(errors []error) []error {
-	filteredErrors := make([]error, 0)
-	for _, err := range errors {
-		if !i.MatchError(err) {
-			filteredErrors = append(filteredErrors, err)
-		}
-	}
-	return filteredErrors
-}
-
-func (i *Ignorer) FilterIgnoredMessages(messages []support.Message) []support.Message {
-	filteredMessages := make([]support.Message, 0)
-	for _, msg := range messages {
-		if !i.MatchMessage(msg) {
-			filteredMessages = append(filteredMessages, msg)
-		}
-	}
-	return filteredMessages
 }
 
 // TODO: figure out & fix or remove
