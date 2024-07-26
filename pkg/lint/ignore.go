@@ -15,6 +15,8 @@ type Ignorer struct {
 	DebugLogger *log.Logger
 }
 
+const DefaultIgnoreFileName = ".helmlintignore"
+
 func NewIgnorer(ignoreFilePath string) *Ignorer {
 	ignorer := &Ignorer{}
 	ignorer.loadPatternsFromFilePath(ignoreFilePath)
