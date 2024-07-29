@@ -2,6 +2,7 @@ package lint
 
 import (
 	"bufio"
+	"fmt"
 	"helm.sh/helm/v3/pkg/lint/support"
 	"log"
 	"os"
@@ -10,21 +11,21 @@ import (
 )
 
 type Ignorer struct {
-	Patterns map[string][]string
-	debug func(string, ...interface{})
+	Patterns        map[string][]string
+	debugFnOverride func(string, ...interface{})
 }
 
 const DefaultIgnoreFileName = ".helmlintignore"
 
-func NewIgnorer(chartPath, ignoreFilePath string, debugFn func(string, ...interface{})) *Ignorer {
-	ignorer := &Ignorer{ debug: debugFn }
+func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...interface{})) *Ignorer {
+	ignorer := &Ignorer{ debugFnOverride: debugLogFn}
 
 	if ignoreFilePath == "" {
 		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
-		ignorer.debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", ignoreFilePath)
+		ignorer.Debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", ignoreFilePath)
 	}
 
-	ignorer.debug("\nUsing ignore file: %s\n", ignoreFilePath)
+	ignorer.Debug("\nUsing ignore file: %s\n", ignoreFilePath)
 	ignorer.loadPatternsFromFilePath(ignoreFilePath)
 	return ignorer
 }
@@ -53,24 +54,24 @@ func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
 func (i *Ignorer) match(errText string) bool {
 	errorFullPath := extractFullPathFromError(errText)
 	if len(errorFullPath) == 0 {
-		i.debug("Unable to find a path for error, guess we'll keep it: %s", errText)
+		i.Debug("Unable to find a path for error, guess we'll keep it: %s", errText)
 		return false
 	}
 
-	i.debug("Extracted full path: %s\n", errorFullPath)
+	i.Debug("Extracted full path: %s\n", errorFullPath)
 	for ignorablePath, pathPatterns := range i.Patterns {
 		cleanIgnorablePath := filepath.Clean(ignorablePath)
 		if strings.Contains(errorFullPath, cleanIgnorablePath) {
 			for _, pattern := range pathPatterns {
 				if strings.Contains(errText, pattern) {
-					i.debug("Ignoring error: [%s] %s\n\n", errorFullPath, errText)
+					i.Debug("Ignoring error: [%s] %s\n\n", errorFullPath, errText)
 					return true
 				}
 			}
 		}
 	}
 
-	i.debug("keeping unignored error: [%s]", errText)
+	i.Debug("keeping unignored error: [%s]", errText)
 	return false
 }
 
@@ -90,7 +91,7 @@ func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		i.debug("failed to open lint ignore file: %s", filePath)
+		i.Debug("failed to open lint ignore file: %s", filePath)
 	}
 	defer func() {
 		err := file.Close()
@@ -116,10 +117,20 @@ func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
 	return
 }
 
+func (i *Ignorer) Debug(format string, args ...interface{}) {
+	if i.debugFnOverride == nil {
+		i.debugFnOverride = func(format string, v ...interface{}) {
+			format = fmt.Sprintf("[debug] %s\n", format)
+			log.Output(2, fmt.Sprintf(format, v...))
+		}
+	}
+
+	i.debugFnOverride(format, args...)
+}
+
 /* TODO HIP-0019
 - find ignore file path for a subchart
 - add a chart or two for the end to end tests via testdata like in pkg/lint/lint_test.go
-- review debug / output patterns across the helm project
 
 Later/never
 - XDG support
