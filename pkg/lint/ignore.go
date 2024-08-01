@@ -12,13 +12,18 @@ import (
 
 type Ignorer struct {
 	Patterns        map[string][]string
+	ErrorPatterns   map[string][]string
 	debugFnOverride func(string, ...interface{})
 }
 
 const DefaultIgnoreFileName = ".helmlintignore"
 
 func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...interface{})) *Ignorer {
-	ignorer := &Ignorer{ debugFnOverride: debugLogFn}
+	ignorer := &Ignorer{
+		debugFnOverride: debugLogFn,
+		Patterns:        make(map[string][]string),
+		ErrorPatterns:   make(map[string][]string),
+	}
 
 	if ignoreFilePath == "" {
 		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
@@ -39,6 +44,29 @@ func (i *Ignorer) FilterErrors(errors []error) []error {
 	}
 
 	return keepers
+}
+
+func (i *Ignorer) FilterNoPathErrors(errors []error) []error {
+	keepers := make([]error, 0)
+	for _, err := range errors {
+		parts := strings.SplitN(err.Error(), ":", 2)
+		prefix := strings.TrimSpace(parts[0])
+		if !i.MatchNoPathError(err.Error(), prefix) {
+			keepers = append(keepers, err)
+		}
+	}
+	return keepers
+}
+
+func (i *Ignorer) MatchNoPathError(errText string, prefix string) bool {
+	for ignorableError := range i.ErrorPatterns {
+		if strings.Contains(errText, prefix) {
+			i.Debug("Ignoring error: [%s] %s\n\n", ignorableError, errText)
+			return true
+		}
+	}
+	i.Debug("keeping unignored error: [%s]", errText)
+	return false
 }
 
 func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
@@ -85,36 +113,36 @@ func extractFullPathFromError(errorString string) string {
 }
 
 func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
-	if i.Patterns == nil {
-		i.Patterns = make(map[string][]string)
-	}
-
 	file, err := os.Open(filePath)
 	if err != nil {
 		i.Debug("failed to open lint ignore file: %s", filePath)
+		return
 	}
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			log.Printf("Failed to close ignore file at [%s]: %v", filePath, err)
-		}
-	}()
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line != "" && !strings.HasPrefix(line, "#") {
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		if strings.HasPrefix(line, "error_lint_ignore=") {
+			parts := strings.SplitN(line[18:], "error_lint_ignore=", 2) // Skipping 'error_lint_ignore=' prefix
+			if len(parts) == 2 {
+				i.ErrorPatterns[parts[0]] = append(i.ErrorPatterns[parts[0]], parts[1])
+			} else {
+				i.ErrorPatterns[parts[0]] = append(i.ErrorPatterns[parts[0]], "")
+			}
+		} else {
 			parts := strings.SplitN(line, " ", 2)
 			if len(parts) > 1 {
-				// Check if the key already exists and append to its slice
 				i.Patterns[parts[0]] = append(i.Patterns[parts[0]], parts[1])
-			} else if len(parts) == 1 {
-				// Add an empty pattern if only the path is present
+			} else {
 				i.Patterns[parts[0]] = append(i.Patterns[parts[0]], "")
 			}
 		}
 	}
-	return
 }
 
 func (i *Ignorer) Debug(format string, args ...interface{}) {
