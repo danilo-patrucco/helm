@@ -103,6 +103,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 				// discard ignored messages and errors
 				result.Messages = ignorer.FilterMessages(result.Messages)
 				result.Errors = ignorer.FilterErrors(result.Errors)
+				result.Errors = ignorer.FilterNoPathErrors(result.Errors)
 
 				// If there are no errors/warnings and quiet flag is set
 				// go to the next chart
