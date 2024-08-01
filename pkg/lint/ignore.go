@@ -49,24 +49,24 @@ func (i *Ignorer) FilterErrors(errors []error) []error {
 func (i *Ignorer) FilterNoPathErrors(errors []error) []error {
 	keepers := make([]error, 0)
 	for _, err := range errors {
-		parts := strings.SplitN(err.Error(), ":", 2)
-		prefix := strings.TrimSpace(parts[0])
-		if !i.MatchNoPathError(err.Error(), prefix) {
+		if i.MatchNoPathError(err.Error()) {
 			keepers = append(keepers, err)
 		}
 	}
 	return keepers
 }
 
-func (i *Ignorer) MatchNoPathError(errText string, prefix string) bool {
+func (i *Ignorer) MatchNoPathError(errText string) bool {
 	for ignorableError := range i.ErrorPatterns {
+		parts := strings.SplitN(ignorableError, ":", 2)
+		prefix := strings.TrimSpace(parts[0])
 		if strings.Contains(errText, prefix) {
 			i.Debug("Ignoring error: [%s] %s\n\n", ignorableError, errText)
-			return true
+			return false
 		}
 	}
 	i.Debug("keeping unignored error: [%s]", errText)
-	return false
+	return true
 }
 
 func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
