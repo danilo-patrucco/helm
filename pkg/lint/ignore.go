@@ -46,14 +46,18 @@ func (i *Ignorer) FilterErrors(errors []error) []error {
 	return keepers
 }
 
-func (i *Ignorer) FilterNoPathErrors(errors []error) []error {
-	keepers := make([]error, 0)
+func (i *Ignorer) FilterNoPathErrors(messages []support.Message, errors []error) ([]support.Message, []error) {
+	KeepersErr := make([]error, 0)
+	KeepersMsg := make([]support.Message, 0)
 	for _, err := range errors {
 		if i.MatchNoPathError(err.Error()) {
-			keepers = append(keepers, err)
+			KeepersErr = append(KeepersErr, err)
+			for _, msg := range messages {
+				KeepersMsg = append(KeepersMsg, msg)
+			}
 		}
 	}
-	return keepers
+	return KeepersMsg, KeepersErr
 }
 
 func (i *Ignorer) MatchNoPathError(errText string) bool {
