@@ -64,7 +64,11 @@ func (i *Ignorer) MatchNoPathError(errText string) bool {
 	for ignorableError := range i.ErrorPatterns {
 		parts := strings.SplitN(ignorableError, ":", 2)
 		prefix := strings.TrimSpace(parts[0])
-		if strings.Contains(errText, prefix) {
+		if match, _ := filepath.Match(ignorableError, errText); match {
+			i.Debug("Ignoring partial match error: [%s] %s\n\n", ignorableError, errText)
+			return false
+		}
+		if matched, _ := filepath.Match(prefix, errText); matched {
 			i.Debug("Ignoring error: [%s] %s\n\n", ignorableError, errText)
 			return false
 		}
