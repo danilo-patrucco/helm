@@ -18,8 +18,6 @@ package main
 
 import (
 	"fmt"
-	"helm.sh/helm/v3/pkg/lint"
-	"helm.sh/helm/v3/pkg/lint/support"
 	"io"
 	"os"
 	"path/filepath"
@@ -32,6 +30,8 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/lint"
+	"helm.sh/helm/v3/pkg/lint/support"
 )
 
 var longLintHelp = `
@@ -89,7 +89,6 @@ func newLintCmd(out io.Writer) *cobra.Command {
 			}
 
 			var message strings.Builder
-
 			failed := 0
 			errorsOrWarnings := 0
 
