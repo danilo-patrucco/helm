@@ -17,10 +17,11 @@ limitations under the License.
 package lint // import "helm.sh/helm/v3/pkg/lint"
 
 import (
+	"path/filepath"
+
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/lint/rules"
 	"helm.sh/helm/v3/pkg/lint/support"
-	"path/filepath"
 )
 
 // All runs all of the available linters on the given base directory.
