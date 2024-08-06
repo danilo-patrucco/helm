@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"helm.sh/helm/v3/pkg/lint/support"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -21,6 +22,8 @@ type Ignorer struct {
 // DefaultIgnoreFileName is the name of the lint ignore file
 // an Ignorer will seek out at load/parse time.
 const DefaultIgnoreFileName = ".helmlintignore"
+const errorPatternPrefix = "error_lint_ignore="
+const lineCommentPrefix = "#"
 
 // NewIgnorer builds an Ignorer object that enables helm to discard specific lint result Messages
 // and Errors should they match the ignore rules in the specified .helmlintignore file.
@@ -152,23 +155,16 @@ func extractFullPathFromError(errorString string) string {
 	return ""
 }
 
-func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		i.Debug("failed to open lint ignore file: %s", filePath)
-		return
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
+func (i *Ignorer) LoadPatternsFromReader(rdr io.Reader) {
+	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
+		if line == "" || strings.HasPrefix(line, lineCommentPrefix) {
 			continue
 		}
 
-		if strings.HasPrefix(line, "error_lint_ignore=") {
-			parts := strings.SplitN(line[18:], "error_lint_ignore=", 2) // Skipping 'error_lint_ignore=' prefix
+		if strings.HasPrefix(line, errorPatternPrefix) {
+			parts := strings.SplitN(line[len(errorPatternPrefix):], errorPatternPrefix, 2)
 			if len(parts) == 2 {
 				i.ErrorPatterns[parts[0]] = append(i.ErrorPatterns[parts[0]], parts[1])
 			} else {
@@ -184,3 +180,25 @@ func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
 		}
 	}
 }
+
+func newIgnorerFromReader(rdr io.Reader) *Ignorer {
+	ignorer := Ignorer{
+		Patterns:        make(map[string][]string),
+		ErrorPatterns:   make(map[string][]string),
+	}
+
+	ignorer.LoadPatternsFromReader(rdr)
+	return &ignorer
+}
+
+func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		i.Debug("failed to open lint ignore file: %s", filePath)
+		return
+	}
+	defer file.Close()
+
+	i.LoadPatternsFromReader(file)
+}
+
