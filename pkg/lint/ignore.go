@@ -10,14 +10,20 @@ import (
 	"strings"
 )
 
+// Ignorer provides a means of suppressing unwanted helm lint errors and messages
+// by comparing them to an ignore list provided in a plaintext helm lint ignore file.
 type Ignorer struct {
 	Patterns        map[string][]string
 	ErrorPatterns   map[string][]string
 	debugFnOverride func(string, ...interface{})
 }
 
+// DefaultIgnoreFileName is the name of the lint ignore file
+// an Ignorer will seek out at load/parse time.
 const DefaultIgnoreFileName = ".helmlintignore"
 
+// NewIgnorer builds an Ignorer object that enables helm to discard specific lint result Messages
+// and Errors should they match the ignore rules in the specified .helmlintignore file.
 func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...interface{})) *Ignorer {
 	ignorer := &Ignorer{
 		debugFnOverride: debugLogFn,
@@ -35,6 +41,8 @@ func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...int
 	return ignorer
 }
 
+// FilterErrors takes a slice of errors and returns a new slice containing only the
+// errors that do not match this Ignorer's ignore string patterns.
 func (i *Ignorer) FilterErrors(errors []error) []error {
 	keepers := make([]error, 0)
 	for _, err := range errors {
@@ -46,6 +54,20 @@ func (i *Ignorer) FilterErrors(errors []error) []error {
 	return keepers
 }
 
+// FilterMessages takes a slice of support.Message and returns a new slice
+// containing only the Messages that do not match this Ignorer's ignore string patterns.
+func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
+	keepers := make([]support.Message, 0)
+	for _, msg := range messages {
+		if !i.match(msg.Err.Error()) {
+			keepers = append(keepers, msg)
+		}
+	}
+	return keepers
+}
+
+// FilterNoPathErrors takes a slice of linter result Messages and a slice of errors and returns
+// only those Messages and errors that do not match this Ignorer's ignore string patterns.
 func (i *Ignorer) FilterNoPathErrors(messages []support.Message, errors []error) ([]support.Message, []error) {
 	KeepersErr := make([]error, 0)
 	KeepersMsg := make([]support.Message, 0)
@@ -60,6 +82,10 @@ func (i *Ignorer) FilterNoPathErrors(messages []support.Message, errors []error)
 	return KeepersMsg, KeepersErr
 }
 
+// MatchNoPathError checks a given string to determine whether it looks like a
+// helm lint finding that does not specifically specify an offending file path.
+// These will usually be related to Chart.yaml contents rather than a template
+// inside the chart itself.
 func (i *Ignorer) MatchNoPathError(errText string) bool {
 	for ignorableError := range i.ErrorPatterns {
 		parts := strings.SplitN(ignorableError, ":", 2)
@@ -77,14 +103,20 @@ func (i *Ignorer) MatchNoPathError(errText string) bool {
 	return true
 }
 
-func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
-	keepers := make([]support.Message, 0)
-	for _, msg := range messages {
-		if !i.match(msg.Err.Error()) {
-			keepers = append(keepers, msg)
+// Debug provides an Ignorer with a caller-overridable logging function
+// intended to match the behavior of the top level debug() method from package main.
+//
+// When no i.debugFnOverride is present Debug will fall back to a naive
+// implementation that assumes all debug output should be logged and not swallowed.
+func (i *Ignorer) Debug(format string, args ...interface{}) {
+	if i.debugFnOverride == nil {
+		i.debugFnOverride = func(format string, v ...interface{}) {
+			format = fmt.Sprintf("[debug] %s\n", format)
+			log.Output(2, fmt.Sprintf(format, v...))
 		}
 	}
-	return keepers
+
+	i.debugFnOverride(format, args...)
 }
 
 func (i *Ignorer) match(errText string) bool {
@@ -152,24 +184,3 @@ func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
 		}
 	}
 }
-
-func (i *Ignorer) Debug(format string, args ...interface{}) {
-	if i.debugFnOverride == nil {
-		i.debugFnOverride = func(format string, v ...interface{}) {
-			format = fmt.Sprintf("[debug] %s\n", format)
-			log.Output(2, fmt.Sprintf(format, v...))
-		}
-	}
-
-	i.debugFnOverride(format, args...)
-}
-
-/* TODO HIP-0019
-- find ignore file path for a subchart
-- add a chart or two for the end to end tests via testdata like in pkg/lint/lint_test.go
-
-Later/never
-- XDG support
-- helm config file support
-- ignore file validation
-*/
