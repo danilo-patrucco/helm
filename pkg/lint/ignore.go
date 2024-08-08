@@ -41,14 +41,23 @@ func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...int
 	return ignorer
 }
 
+func (i *Ignorer) FilterLintResult(messages []support.Message, errors []error) ([]support.Message, []error) {
+	messagesFiltered := i.FilterMessages(messages)
+	errorsFiltered := i.FilterErrors(errors)
+	return i.FilterNoPathErrors(messagesFiltered, errorsFiltered)
+}
+
 // FilterErrors takes a slice of errors and returns a new slice containing only the
 // errors that do not match this Ignorer's ignore string patterns.
 func (i *Ignorer) FilterErrors(errors []error) []error {
 	keepers := make([]error, 0)
 	for _, err := range errors {
-		if !i.match(err.Error()) {
+		errText := err.Error()
+		if !i.isIgnorable(errText) {
+			i.debugFnOverride("not filtering this error because it is not ignorable: %s", errText)
 			keepers = append(keepers, err)
 		}
+		i.debugFnOverride("filtering this error because it is ignorable: %s", errText)
 	}
 
 	return keepers
@@ -59,7 +68,7 @@ func (i *Ignorer) FilterErrors(errors []error) []error {
 func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
 	keepers := make([]support.Message, 0)
 	for _, msg := range messages {
-		if !i.match(msg.Err.Error()) {
+		if !i.isIgnorable(msg.Err.Error()) {
 			keepers = append(keepers, msg)
 		}
 	}
@@ -120,10 +129,10 @@ func (i *Ignorer) Debug(format string, args ...interface{}) {
 	i.debugFnOverride(format, args...)
 }
 
-func (i *Ignorer) match(errText string) bool {
-	errorFullPath := extractFullPathFromError(errText)
-	if len(errorFullPath) == 0 {
-		i.Debug("Unable to find a path for error, guess we'll keep it: %s", errText)
+func (i *Ignorer) isIgnorable(errText string) bool {
+	errorFullPath, err := extractFullPathFromError(errText)
+	if err != nil {
+		i.Debug("Unable to find a path for error, guess we'll keep it: %s, %v", errText, err)
 		return false
 	}
 
@@ -137,6 +146,7 @@ func (i *Ignorer) match(errText string) bool {
 					return true
 				}
 			}
+			i.Debug("keeping unmatched error: %s", errText)
 		}
 	}
 
@@ -145,15 +155,21 @@ func (i *Ignorer) match(errText string) bool {
 }
 
 // TODO: figure out & fix or remove
-func extractFullPathFromError(errorString string) string {
-	parts := strings.Split(errorString, ":")
+func extractFullPathFromError(errText string) (string, error) {
+	delimiter := ":"
+	// splits into N parts delimited by colons
+	parts := strings.Split(errText, delimiter)
+	// if 3 or more parts, return the second part, after trimming its spaces
 	if len(parts) > 2 {
-		return strings.TrimSpace(parts[1])
+		return strings.TrimSpace(parts[1]), nil
 	}
-	return ""
+	// if fewer than 3 parts, return empty string
+	return "", fmt.Errorf("fewer than three [%s]-delimited parts found, no path here: %s", delimiter, errText)
 }
 
 func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
+	var chartLevelErrorPrefix = "error_lint_ignore="
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		i.Debug("failed to open lint ignore file: %s", filePath)
@@ -168,14 +184,22 @@ func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
 			continue
 		}
 
-		if strings.HasPrefix(line, "error_lint_ignore=") {
-			parts := strings.SplitN(line[18:], "error_lint_ignore=", 2) // Skipping 'error_lint_ignore=' prefix
-			if len(parts) == 2 {
-				i.ErrorPatterns[parts[0]] = append(i.ErrorPatterns[parts[0]], parts[1])
+		isChartLevelError := strings.HasPrefix(line, chartLevelErrorPrefix)
+
+		if isChartLevelError {
+			// handle chart-level errors
+			tokens := strings.SplitN(line[len(chartLevelErrorPrefix):], chartLevelErrorPrefix, 2) // Skipping 'error_lint_ignore=' prefix
+			var leftThing string
+			var rightThing = ""
+			if len(tokens) == 2 {
+				leftThing, rightThing = tokens[0], tokens[1]
+				i.ErrorPatterns[leftThing] = append(i.ErrorPatterns[leftThing], rightThing)
 			} else {
-				i.ErrorPatterns[parts[0]] = append(i.ErrorPatterns[parts[0]], "")
+				leftThing = tokens[0]
+				i.ErrorPatterns[leftThing] = append(i.ErrorPatterns[leftThing], rightThing)
 			}
 		} else {
+			// handle chart yaml file errors in specific template files
 			parts := strings.SplitN(line, " ", 2)
 			if len(parts) > 1 {
 				i.Patterns[parts[0]] = append(i.Patterns[parts[0]], parts[1])
