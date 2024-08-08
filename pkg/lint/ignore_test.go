@@ -30,7 +30,7 @@ func TestFilterErrors(t *testing.T) {
 
 	// act
 	ignorer := &Ignorer{
-		PathlessErrorPatterns: map[string][]string{
+		ErrorPatterns: map[string][]string{
 			badYamlPath: {"ignore this error"},
 		},
 	}
@@ -44,7 +44,7 @@ func TestFilterErrors(t *testing.T) {
 
 func TestFilterNoPathErrors(t *testing.T) {
 	ignorer := &Ignorer{
-		PathlessErrorPatterns: map[string][]string{
+		ErrorPatterns: map[string][]string{
 			"chart error": {"this should be ignored"},
 		},
 	}
@@ -57,7 +57,7 @@ func TestFilterNoPathErrors(t *testing.T) {
 
 func TestMatchNoPathError(t *testing.T) {
 	ignorer := &Ignorer{
-		PathlessErrorPatterns: map[string][]string{
+		ErrorPatterns: map[string][]string{
 			"generic error": {"ignore this"},
 		},
 	}
