@@ -12,14 +12,10 @@ import (
 func TestNewIgnorer(t *testing.T) {
 	chartPath := "rules/testdata/withsubchartlintignore"
 	ignoreFilePath := filepath.Join(chartPath, ".helmlintignore")
-
 	ignorer := NewIgnorer(chartPath, ignoreFilePath, func(format string, args ...interface{}) {
-		t.Logf(format, args...) // Use testing's log function to output debug information
+		t.Logf(format, args...)
 	})
-
 	assert.NotNil(t, ignorer, "Ignorer should not be nil")
-
-	// Check if patterns were loaded
 	if len(ignorer.Patterns) == 0 {
 		t.Errorf("Expected patterns to be loaded from the file, but none were found")
 	}
@@ -31,12 +27,10 @@ func TestFilterErrors(t *testing.T) {
 			"error pattern": {"ignore this error"},
 		},
 	}
-
 	errors := []error{
 		fmt.Errorf("ignore this error"),
 		fmt.Errorf("keep this error"),
 	}
-
 	filteredErrors := ignorer.FilterErrors(errors)
 	assert.Len(t, filteredErrors, 1)
 	assert.EqualError(t, filteredErrors[0], "keep this error")
@@ -48,10 +42,8 @@ func TestFilterNoPathErrors(t *testing.T) {
 			"chart error": {"this should be ignored"},
 		},
 	}
-
 	messages := []support.Message{ /* your test messages */ }
 	errors := []error{fmt.Errorf("this should be ignored"), fmt.Errorf("this should be kept")}
-
 	filteredMessages, filteredErrors := ignorer.FilterNoPathErrors(messages, errors)
 	assert.Empty(t, filteredErrors)
 	assert.NotEmpty(t, filteredMessages)
@@ -63,8 +55,7 @@ func TestMatchNoPathError(t *testing.T) {
 			"generic error": {"ignore this"},
 		},
 	}
-
-	result := ignorer.MatchNoPathError("ignore this")
+	result := ignorer.IsIgnoredPathlessError("ignore this")
 	assert.False(t, result)
 }
 
@@ -73,11 +64,9 @@ func TestDebug(t *testing.T) {
 	debugFn := func(format string, args ...interface{}) {
 		captured = fmt.Sprintf(format, args...)
 	}
-
 	ignorer := &Ignorer{
 		debugFnOverride: debugFn,
 	}
-
 	ignorer.Debug("test %s", "debug")
 	assert.Equal(t, "test debug", captured)
 }

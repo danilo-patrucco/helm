@@ -1,0 +1,1 @@
+rules/testdata/withsubchartlintignore/charts/subchart/templates/subchart.yaml <include "this.is.test.data" .>

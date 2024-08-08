@@ -72,35 +72,36 @@ func (i *Ignorer) FilterNoPathErrors(messages []support.Message, errors []error)
 	KeepersErr := make([]error, 0)
 	KeepersMsg := make([]support.Message, 0)
 	for _, err := range errors {
-		if i.MatchNoPathError(err.Error()) {
-			KeepersErr = append(KeepersErr, err)
-			for _, msg := range messages {
-				KeepersMsg = append(KeepersMsg, msg)
-			}
+		if i.IsIgnoredPathlessError(err.Error()) {
+			continue
+		}
+		KeepersErr = append(KeepersErr, err)
+		for _, msg := range messages {
+			KeepersMsg = append(KeepersMsg, msg)
 		}
 	}
 	return KeepersMsg, KeepersErr
 }
 
-// MatchNoPathError checks a given string to determine whether it looks like a
+// IsIgnoredPathlessError checks a given string to determine whether it looks like a
 // helm lint finding that does not specifically specify an offending file path.
 // These will usually be related to Chart.yaml contents rather than a template
 // inside the chart itself.
-func (i *Ignorer) MatchNoPathError(errText string) bool {
+func (i *Ignorer) IsIgnoredPathlessError(errText string) bool {
 	for ignorableError := range i.ErrorPatterns {
 		parts := strings.SplitN(ignorableError, ":", 2)
 		prefix := strings.TrimSpace(parts[0])
 		if match, _ := filepath.Match(ignorableError, errText); match {
 			i.Debug("Ignoring partial match error: [%s] %s\n\n", ignorableError, errText)
-			return false
+			return true
 		}
 		if matched, _ := filepath.Match(prefix, errText); matched {
 			i.Debug("Ignoring error: [%s] %s\n\n", ignorableError, errText)
-			return false
+			return true
 		}
 	}
 	i.Debug("keeping unignored error: [%s]", errText)
-	return true
+	return false
 }
 
 // Debug provides an Ignorer with a caller-overridable logging function
