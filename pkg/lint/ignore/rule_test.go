@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-const todoRule = "TODO MAKE A RULE FOR THIS"
-
 func TestRule_ShouldKeepMessage(t *testing.T) {
 	type testCase struct {
 		Scenario   string
@@ -17,7 +15,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 	testCases := []testCase{
 		{
 			Scenario: "subchart template not defined",
-			RuleText: todoRule,
+			RuleText: "TODO MAKE A RULE FOR THIS",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab",
 				MessagePath: "templates/",
@@ -44,7 +42,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 		},
 		{
 			Scenario: "subchart icon is recommended",
-			RuleText: todoRule,
+			RuleText: "TODO MAKE A RULE FOR THIS",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab-zoekt-1.4.0.tgz",
 				MessagePath: "Chart.yaml",
@@ -53,7 +51,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 		},
 		{
 			Scenario: "subchart values file does not exist",
-			RuleText: todoRule,
+			RuleText: "TODO MAKE A RULE FOR THIS",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gluon-0.5.0.tgz",
 				MessagePath: "values.yaml",
@@ -62,7 +60,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 		},
 		{
 			Scenario: "subchart metadata missing dependencies",
-			RuleText: todoRule,
+			RuleText: "TODO MAKE A RULE FOR THIS",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab",
 				MessagePath: "/Users/daniel/radius/bb/gitlab/chart/charts/gitlab",
