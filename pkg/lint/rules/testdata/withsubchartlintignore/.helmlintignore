@@ -1,0 +1,2 @@
+rules/testdata/withsubchartlintignore/charts/subchart/templates/subchart.yaml unexpected EOF
+error_lint_ignore=chart metadata is missing these dependencies**

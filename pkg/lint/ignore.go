@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"helm.sh/helm/v3/pkg/lint/support"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,8 +38,16 @@ func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...int
 	}
 
 	ignorer.Debug("\nUsing ignore file: %s\n", ignoreFilePath)
-	ignorer.loadPatternsFromFilePath(ignoreFilePath)
+	ignorer.loadFromFilePath(ignoreFilePath)
 	return ignorer
+}
+
+func (i *Ignorer) FilterLintResult(messages []support.Message, errors []error) ([]support.Message, []error) {
+	support.DumpInputsAsJsonLines(messages, errors)
+
+	messagesFiltered := i.FilterMessages(messages)
+	errorsFiltered := i.FilterErrors(errors)
+	return i.FilterNoPathErrors(messagesFiltered, errorsFiltered)
 }
 
 // FilterErrors takes a slice of errors and returns a new slice containing only the
@@ -46,9 +55,12 @@ func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...int
 func (i *Ignorer) FilterErrors(errors []error) []error {
 	keepers := make([]error, 0)
 	for _, err := range errors {
-		if !i.match(err.Error()) {
+		errText := err.Error()
+		if !i.isIgnorable(errText) {
+			i.debugFnOverride("not filtering this error because it is not ignorable: %s", errText)
 			keepers = append(keepers, err)
 		}
+		i.debugFnOverride("filtering this error because it is ignorable: %s", errText)
 	}
 
 	return keepers
@@ -59,7 +71,7 @@ func (i *Ignorer) FilterErrors(errors []error) []error {
 func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
 	keepers := make([]support.Message, 0)
 	for _, msg := range messages {
-		if !i.match(msg.Err.Error()) {
+		if !i.isIgnorable(msg.Err.Error()) {
 			keepers = append(keepers, msg)
 		}
 	}
@@ -72,35 +84,36 @@ func (i *Ignorer) FilterNoPathErrors(messages []support.Message, errors []error)
 	KeepersErr := make([]error, 0)
 	KeepersMsg := make([]support.Message, 0)
 	for _, err := range errors {
-		if i.MatchNoPathError(err.Error()) {
-			KeepersErr = append(KeepersErr, err)
-			for _, msg := range messages {
-				KeepersMsg = append(KeepersMsg, msg)
-			}
+		if i.IsIgnoredPathlessError(err.Error()) {
+			continue
+		}
+		KeepersErr = append(KeepersErr, err)
+		for _, msg := range messages {
+			KeepersMsg = append(KeepersMsg, msg)
 		}
 	}
 	return KeepersMsg, KeepersErr
 }
 
-// MatchNoPathError checks a given string to determine whether it looks like a
+// IsIgnoredPathlessError checks a given string to determine whether it looks like a
 // helm lint finding that does not specifically specify an offending file path.
 // These will usually be related to Chart.yaml contents rather than a template
 // inside the chart itself.
-func (i *Ignorer) MatchNoPathError(errText string) bool {
+func (i *Ignorer) IsIgnoredPathlessError(errText string) bool {
 	for ignorableError := range i.ErrorPatterns {
 		parts := strings.SplitN(ignorableError, ":", 2)
 		prefix := strings.TrimSpace(parts[0])
 		if match, _ := filepath.Match(ignorableError, errText); match {
 			i.Debug("Ignoring partial match error: [%s] %s\n\n", ignorableError, errText)
-			return false
+			return true
 		}
 		if matched, _ := filepath.Match(prefix, errText); matched {
 			i.Debug("Ignoring error: [%s] %s\n\n", ignorableError, errText)
-			return false
+			return true
 		}
 	}
 	i.Debug("keeping unignored error: [%s]", errText)
-	return true
+	return false
 }
 
 // Debug provides an Ignorer with a caller-overridable logging function
@@ -119,10 +132,10 @@ func (i *Ignorer) Debug(format string, args ...interface{}) {
 	i.debugFnOverride(format, args...)
 }
 
-func (i *Ignorer) match(errText string) bool {
-	errorFullPath := extractFullPathFromError(errText)
-	if len(errorFullPath) == 0 {
-		i.Debug("Unable to find a path for error, guess we'll keep it: %s", errText)
+func (i *Ignorer) isIgnorable(errText string) bool {
+	errorFullPath, err := extractFullPathFromError(errText)
+	if err != nil {
+		i.Debug("Unable to find a path for error, guess we'll keep it: %s, %v", errText, err)
 		return false
 	}
 
@@ -136,6 +149,7 @@ func (i *Ignorer) match(errText string) bool {
 					return true
 				}
 			}
+			i.Debug("keeping unmatched error: %s", errText)
 		}
 	}
 
@@ -144,37 +158,53 @@ func (i *Ignorer) match(errText string) bool {
 }
 
 // TODO: figure out & fix or remove
-func extractFullPathFromError(errorString string) string {
-	parts := strings.Split(errorString, ":")
+func extractFullPathFromError(errText string) (string, error) {
+	delimiter := ":"
+	// splits into N parts delimited by colons
+	parts := strings.Split(errText, delimiter)
+	// if 3 or more parts, return the second part, after trimming its spaces
 	if len(parts) > 2 {
-		return strings.TrimSpace(parts[1])
+		return strings.TrimSpace(parts[1]), nil
 	}
-	return ""
+	// if fewer than 3 parts, return empty string
+	return "", fmt.Errorf("fewer than three [%s]-delimited parts found, no path here: %s", delimiter, errText)
 }
 
-func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
+func (i *Ignorer) loadFromFilePath(filePath string) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		i.Debug("failed to open lint ignore file: %s", filePath)
 		return
 	}
 	defer file.Close()
+	i.loadFromReader(file)
+}
 
-	scanner := bufio.NewScanner(file)
+func (i *Ignorer) loadFromReader(rdr io.Reader) {
+	const chartLevelErrorPrefix = "error_lint_ignore="
+	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 
-		if strings.HasPrefix(line, "error_lint_ignore=") {
-			parts := strings.SplitN(line[18:], "error_lint_ignore=", 2) // Skipping 'error_lint_ignore=' prefix
-			if len(parts) == 2 {
-				i.ErrorPatterns[parts[0]] = append(i.ErrorPatterns[parts[0]], parts[1])
+		isChartLevelError := strings.HasPrefix(line, chartLevelErrorPrefix)
+
+		if isChartLevelError {
+			// handle chart-level errors
+			tokens := strings.SplitN(line[len(chartLevelErrorPrefix):], chartLevelErrorPrefix, 2) // Skipping 'error_lint_ignore=' prefix
+			var leftThing string
+			var rightThing = ""
+			if len(tokens) == 2 {
+				leftThing, rightThing = tokens[0], tokens[1]
+				i.ErrorPatterns[leftThing] = append(i.ErrorPatterns[leftThing], rightThing)
 			} else {
-				i.ErrorPatterns[parts[0]] = append(i.ErrorPatterns[parts[0]], "")
+				leftThing = tokens[0]
+				i.ErrorPatterns[leftThing] = append(i.ErrorPatterns[leftThing], rightThing)
 			}
 		} else {
+			// handle chart yaml file errors in specific template files
 			parts := strings.SplitN(line, " ", 2)
 			if len(parts) > 1 {
 				i.Patterns[parts[0]] = append(i.Patterns[parts[0]], parts[1])
