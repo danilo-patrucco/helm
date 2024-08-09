@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"helm.sh/helm/v3/pkg/lint/support"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,11 +38,13 @@ func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...int
 	}
 
 	ignorer.Debug("\nUsing ignore file: %s\n", ignoreFilePath)
-	ignorer.loadPatternsFromFilePath(ignoreFilePath)
+	ignorer.loadFromFilePath(ignoreFilePath)
 	return ignorer
 }
 
 func (i *Ignorer) FilterLintResult(messages []support.Message, errors []error) ([]support.Message, []error) {
+	support.DumpInputsAsJsonLines(messages, errors)
+
 	messagesFiltered := i.FilterMessages(messages)
 	errorsFiltered := i.FilterErrors(errors)
 	return i.FilterNoPathErrors(messagesFiltered, errorsFiltered)
@@ -167,17 +170,19 @@ func extractFullPathFromError(errText string) (string, error) {
 	return "", fmt.Errorf("fewer than three [%s]-delimited parts found, no path here: %s", delimiter, errText)
 }
 
-func (i *Ignorer) loadPatternsFromFilePath(filePath string) {
-	var chartLevelErrorPrefix = "error_lint_ignore="
-
+func (i *Ignorer) loadFromFilePath(filePath string) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		i.Debug("failed to open lint ignore file: %s", filePath)
 		return
 	}
 	defer file.Close()
+	i.loadFromReader(file)
+}
 
-	scanner := bufio.NewScanner(file)
+func (i *Ignorer) loadFromReader(rdr io.Reader) {
+	const chartLevelErrorPrefix = "error_lint_ignore="
+	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {

@@ -5,9 +5,23 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/lint/support"
 	"path/filepath"
+	"strings"
 	"testing"
 	"text/template"
 )
+
+// NewFromString builds a new Ignorer when provided a string representing the contents of a .helmlintignore file.
+// This should be especially useful for testing.
+func newFromString(s string) *Ignorer {
+	out := &Ignorer{
+		Patterns:      make(map[string][]string),
+		ErrorPatterns: make(map[string][]string),
+	}
+
+	rdr := strings.NewReader(s)
+	out.loadFromReader(rdr)
+	return out
+}
 
 func TestNewIgnorer(t *testing.T) {
 	chartPath := "rules/testdata/withsubchartlintignore"
