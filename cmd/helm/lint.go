@@ -100,9 +100,8 @@ func newLintCmd(out io.Writer) *cobra.Command {
 				ignorer := lint.NewIgnorer(path, lintIgnoreFilePath, debug)
 
 				// discard ignored messages and errors
-				result.Messages = ignorer.FilterMessages(result.Messages)
-				result.Errors = ignorer.FilterErrors(result.Errors)
-				result.Messages, result.Errors = ignorer.FilterNoPathErrors(result.Messages, result.Errors)
+				result.Messages, result.Errors = ignorer.FilterLintResult(result.Messages, result.Errors)
+
 				// If there are no errors/warnings and quiet flag is set
 				// go to the next chart
 				hasWarningsOrErrors := action.HasWarningsOrErrors(result)
