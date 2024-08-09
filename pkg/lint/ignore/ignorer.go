@@ -2,28 +2,20 @@ package ignore
 
 import (
 	"helm.sh/helm/v3/pkg/lint/support"
+	"log/slog"
+	"os"
 )
 
 type Ignorer struct {
-
+	ChartPath string
+	Rules     []Rule
+	logger    *slog.Logger
 }
 
-func (i *Ignorer) FilterErrors(chartPath string, errs []error) []error {
-	out := make([]error, 0, len(errs))
-	for _, err := range errs {
-		if !i.ShouldKeepError(chartPath, err) {
-			continue
-		}
-
-		out = append(out, err)
-	}
-	return out
-}
-
-func (i *Ignorer) FilterMessages(chartPath string, messages []support.Message) []support.Message {
+func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
 	out := make([]support.Message, 0, len(messages))
 	for _, msg := range messages {
-		if !i.ShouldKeepMessage(chartPath, msg) {
+		if !i.ShouldKeepMessage(msg) {
 			continue
 		}
 		out = append(out, msg)
@@ -31,10 +23,25 @@ func (i *Ignorer) FilterMessages(chartPath string, messages []support.Message) [
 	return out
 }
 
-func (i *Ignorer) ShouldKeepError(chartPath string, err error) bool {
+func (i *Ignorer) ShouldKeepError(err error) bool {
+	logAttr := slog.Group("Err", slog.String("text", err.Error()))
+	i.Info("action/lint/Run captured an error", "Kind", "Error", logAttr)
 	return true
 }
 
-func (i *Ignorer) ShouldKeepMessage(chartPath string, msg support.Message) bool {
+func (i *Ignorer) ShouldKeepMessage(message support.Message) bool {
+	i.Info("action/lint/Run captured a message", "Kind", "Message", message.LogAttrs())
 	return true
+}
+
+func (i *Ignorer) Info(msg string, args ...any) {
+	if i.logger == nil {
+		i.logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	}
+
+	baseAttrs := slog.Group("Chart",
+		slog.String("Path", i.ChartPath),
+	)
+
+	i.logger.With(baseAttrs).Info(msg, args...)
 }
