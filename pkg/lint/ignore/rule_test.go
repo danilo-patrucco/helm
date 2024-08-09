@@ -7,20 +7,17 @@ import (
 
 const todoRule = "TODO MAKE A RULE FOR THIS"
 
-var fakeLM = LintedMessage{}
-
 func TestRule_ShouldKeepMessage(t *testing.T) {
 	type testCase struct {
-		Description string
-		RuleText    string
-		Ignorables  []LintedMessage
-		Keepables   []LintedMessage
+		Scenario   string
+		RuleText   string
+		Ignorables []LintedMessage
 	}
 
 	testCases := []testCase{
 		{
-			Description: "subchart template not defined",
-			RuleText:    todoRule,
+			Scenario: "subchart template not defined",
+			RuleText: todoRule,
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab",
 				MessagePath: "templates/",
@@ -28,8 +25,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			}},
 		},
 		{
-			Description: "subchart template include template not found",
-			RuleText:    todoRule,
+			Scenario: "subchart template include template not found",
+			RuleText: "gitaly/templates/statefulset.yml <include \"gitlab.gitaly.includeInternalResources\" $>\n",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab/charts/gitaly",
 				MessagePath: "templates/",
@@ -37,8 +34,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			}},
 		},
 		{
-			Description: "subchart template evaluation has a nil pointer",
-			RuleText:    todoRule,
+			Scenario: "subchart template evaluation has a nil pointer",
+			RuleText: "gitlab-exporter/templates/serviceaccount.yaml <.Values.global.serviceAccount.enabled>\n",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab/charts/gitlab-exporter",
 				MessagePath: "templates/",
@@ -46,8 +43,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			}},
 		},
 		{
-			Description: "subchart icon is recommended",
-			RuleText:    todoRule,
+			Scenario: "subchart icon is recommended",
+			RuleText: todoRule,
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab-zoekt-1.4.0.tgz",
 				MessagePath: "Chart.yaml",
@@ -55,8 +52,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			}},
 		},
 		{
-			Description: "subchart values file does not exist",
-			RuleText:    todoRule,
+			Scenario: "subchart values file does not exist",
+			RuleText: todoRule,
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gluon-0.5.0.tgz",
 				MessagePath: "values.yaml",
@@ -64,8 +61,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			}},
 		},
 		{
-			Description: "subchart metadata missing dependencies",
-			RuleText:    todoRule,
+			Scenario: "subchart metadata missing dependencies",
+			RuleText: todoRule,
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab",
 				MessagePath: "/Users/daniel/radius/bb/gitlab/chart/charts/gitlab",
@@ -75,16 +72,19 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		t.Run(testCase.Description, func(t *testing.T) {
+		t.Run(testCase.Scenario, func(t *testing.T) {
 			rule := NewRule(testCase.RuleText)
 
 			for _, ignorableMessage := range testCase.Ignorables {
-				assert.False(t, rule.ShouldKeepLintedMessage(ignorableMessage), testCase.Description)
+				assert.False(t, rule.ShouldKeepLintedMessage(ignorableMessage), testCase.Scenario)
 			}
 
-			for _, keepableMessage := range testCase.Ignorables {
-				assert.True(t, rule.ShouldKeepLintedMessage(keepableMessage), testCase.Description)
+			keepableMessage := LintedMessage{
+				ChartPath:   "a/memorable/path",
+				MessagePath: "wow/",
+				MessageText: "incredible: something just happened",
 			}
+			assert.True(t, rule.ShouldKeepLintedMessage(keepableMessage))
 		})
 	}
 }

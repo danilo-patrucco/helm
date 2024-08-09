@@ -177,10 +177,17 @@ func (i *Ignorer) loadFromFilePath(filePath string) {
 		return
 	}
 	defer file.Close()
-	i.loadFromReader(file)
+	i.LoadFromReader(file)
 }
 
-func (i *Ignorer) loadFromReader(rdr io.Reader) {
+func (i *Ignorer) LoadFromReader(rdr io.Reader) {
+	if i.Patterns == nil {
+		i.Patterns = make(map[string][]string)
+	}
+	if i.ErrorPatterns == nil {
+		i.ErrorPatterns = make(map[string][]string)
+	}
+
 	const chartLevelErrorPrefix = "error_lint_ignore="
 	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
