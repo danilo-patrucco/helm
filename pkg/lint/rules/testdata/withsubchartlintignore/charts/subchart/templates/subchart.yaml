@@ -1,3 +1,2 @@
 metadata:
   name: {{ .Values.subchart.name | lower }}
-{{-     if not (include "this.is.test.data" .) }}
