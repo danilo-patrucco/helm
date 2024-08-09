@@ -19,7 +19,7 @@ func newFromString(s string) *Ignorer {
 	}
 
 	rdr := strings.NewReader(s)
-	out.loadFromReader(rdr)
+	out.LoadFromReader(rdr)
 	return out
 }
 
