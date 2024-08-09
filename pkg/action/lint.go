@@ -17,6 +17,7 @@ limitations under the License.
 package action
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,22 +59,62 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
 		lowestTolerance = support.WarningSev
 	}
 	result := &LintResult{}
-	for _, path := range paths {
+	for chartIndex, path := range paths {
 		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion)
 		if err != nil {
 			result.Errors = append(result.Errors, err)
 			continue
 		}
+		logCapturedErrors(chartIndex, path, result.Errors)
+		result.Errors = filterErrors(chartIndex, path, result.Errors)
 
 		result.Messages = append(result.Messages, linter.Messages...)
+
+		logCapturedMessages(chartIndex, path, result.Messages)
+		result.Messages = filterMessages(chartIndex, path, result.Messages)
+
 		result.TotalChartsLinted++
 		for _, msg := range linter.Messages {
 			if msg.Severity >= lowestTolerance {
+				slog.Info("action/lint/Run is promoting a message to Error", "chartIndex", chartIndex, "path", path, "lowestTolerance", lowestTolerance, msg.LogAttrs())
 				result.Errors = append(result.Errors, msg.Err)
 			}
 		}
 	}
 	return result
+}
+
+func filterMessages(chartIndex int, path string, messages []support.Message) []support.Message {
+	out := make([]support.Message, 0, len(messages))
+	for _, msg := range messages {
+		// TODO: filter some messages based on content
+		out = append(out, msg)
+	}
+	return messages
+}
+
+func filterErrors(chartIndex int, path string, errs []error) []error {
+	out := make([]error, 0, len(errs))
+	for _, err := range errs {
+		// TODO: filter some errors based on content
+		out = append(out, err)
+	}
+	return errs
+}
+
+var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+func logCapturedErrors(chartIndex int, path string, errors []error) {
+	for _, err := range errors {
+		logAttr := slog.Group("Err", slog.String("text", err.Error()))
+		logger.Info("action/lint/Run captured an error", "chartIndex", chartIndex, "path", path, logAttr)
+	}
+}
+
+func logCapturedMessages(chartIndex int, path string, messages []support.Message) {
+	for _, msg := range messages {
+		logger.Info("action/lint/Run captured a message", "chartIndex", chartIndex, "path", path, msg.LogAttrs())
+	}
 }
 
 // HasWarningsOrErrors checks is LintResult has any warnings or errors
