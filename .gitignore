@@ -10,5 +10,6 @@ _dist/
 _dist_versions/
 bin/
 vendor/
+ignorer-inputs.jsonl
 # Ignores charts pulled for dependency build tests
 cmd/helm/testdata/testcharts/issue-7233/charts/*
