@@ -15,7 +15,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 	testCases := []testCase{
 		{
 			Scenario: "subchart template not defined",
-			RuleText: "TODO MAKE A RULE FOR THIS",
+			RuleText: "gitlab/charts/webservice/templates/tests/tests.yaml <{{template \"fullname\" .}}>",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab",
 				MessagePath: "templates/",
@@ -42,7 +42,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 		},
 		{
 			Scenario: "subchart icon is recommended",
-			RuleText: "TODO MAKE A RULE FOR THIS",
+			RuleText: "",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab-zoekt-1.4.0.tgz",
 				MessagePath: "Chart.yaml",
@@ -56,15 +56,6 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 				ChartPath:   "../gitlab/chart/charts/gluon-0.5.0.tgz",
 				MessagePath: "values.yaml",
 				MessageText: "file does not exist",
-			}},
-		},
-		{
-			Scenario: "subchart metadata missing dependencies",
-			RuleText: "TODO MAKE A RULE FOR THIS",
-			Ignorables: []LintedMessage{{
-				ChartPath:   "../gitlab/chart/charts/gitlab",
-				MessagePath: "/Users/daniel/radius/bb/gitlab/chart/charts/gitlab",
-				MessageText: "chart metadata is missing these dependencies: sidekiq,spamcheck,gitaly,gitlab-shell,kas,mailroom,migrations,toolbox,geo-logcursor,gitlab-exporter,webservice",
 			}},
 		},
 	}
@@ -83,6 +74,43 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 				MessageText: "incredible: something just happened",
 			}
 			assert.True(t, rule.ShouldKeepLintedMessage(keepableMessage))
+		})
+	}
+}
+
+func TestRule_ShouldKeepErrors(t *testing.T) {
+	type testCase struct {
+		Scenario   string
+		RuleText   string
+		Ignorables []LintedMessage
+	}
+
+	testCases := []testCase{
+		{
+			Scenario: "subchart metadata missing dependencies",
+			RuleText: "error_lint_ignore=chart metadata is missing these dependencies**",
+			Ignorables: []LintedMessage{{
+				ChartPath:   "../gitlab/chart/charts/gitlab",
+				MessagePath: "/Users/daniel/radius/bb/gitlab/chart/charts/gitlab",
+				MessageText: "chart metadata is missing these dependencies: sidekiq,spamcheck,gitaly,gitlab-shell,kas,mailroom,migrations,toolbox,geo-logcursor,gitlab-exporter,webservice",
+			}},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.Scenario, func(t *testing.T) {
+			rule := NewRule(testCase.RuleText)
+
+			for _, ignorableMessage := range testCase.Ignorables {
+				assert.True(t, rule.ShouldKeepLintedMessage(ignorableMessage), testCase.Scenario)
+			}
+
+			keepableMessage := LintedMessage{
+				ChartPath:   "a/memorable/path",
+				MessagePath: "wow/",
+				MessageText: "this is wrong",
+			}
+			assert.False(t, rule.ShouldKeepLintedError(keepableMessage))
 		})
 	}
 }
