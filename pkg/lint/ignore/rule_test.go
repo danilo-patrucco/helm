@@ -91,7 +91,7 @@ func TestRule_ShouldKeepErrors(t *testing.T) {
 			RuleText: "error_lint_ignore=chart metadata is missing these dependencies**",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab",
-				MessagePath: "/Users/daniel/radius/bb/gitlab/chart/charts/gitlab",
+				MessagePath: "gitlab/chart/charts/gitlab",
 				MessageText: "chart metadata is missing these dependencies: sidekiq,spamcheck,gitaly,gitlab-shell,kas,mailroom,migrations,toolbox,geo-logcursor,gitlab-exporter,webservice",
 			}},
 		},
