@@ -40,24 +40,6 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 				MessageText: "template: gitlab-exporter/templates/serviceaccount.yaml:1:57: executing \"gitlab-exporter/templates/serviceaccount.yaml\" at <.Values.global.serviceAccount.enabled>: nil pointer evaluating interface {}.enabled",
 			}},
 		},
-		{
-			Scenario: "subchart icon is recommended",
-			RuleText: "",
-			Ignorables: []LintedMessage{{
-				ChartPath:   "../gitlab/chart/charts/gitlab-zoekt-1.4.0.tgz",
-				MessagePath: "Chart.yaml",
-				MessageText: "icon is recommended",
-			}},
-		},
-		{
-			Scenario: "subchart values file does not exist",
-			RuleText: "TODO MAKE A RULE FOR THIS",
-			Ignorables: []LintedMessage{{
-				ChartPath:   "../gitlab/chart/charts/gluon-0.5.0.tgz",
-				MessagePath: "values.yaml",
-				MessageText: "file does not exist",
-			}},
-		},
 	}
 
 	for _, testCase := range testCases {
@@ -93,6 +75,24 @@ func TestRule_ShouldKeepErrors(t *testing.T) {
 				ChartPath:   "../gitlab/chart/charts/gitlab",
 				MessagePath: "gitlab/chart/charts/gitlab",
 				MessageText: "chart metadata is missing these dependencies: sidekiq,spamcheck,gitaly,gitlab-shell,kas,mailroom,migrations,toolbox,geo-logcursor,gitlab-exporter,webservice",
+			}},
+		},
+		{
+			Scenario: "subchart icon is recommended",
+			RuleText: "error_lint_ignore=subchart icon is recommended",
+			Ignorables: []LintedMessage{{
+				ChartPath:   "../gitlab/chart/charts/gitlab-zoekt-1.4.0.tgz",
+				MessagePath: "Chart.yaml",
+				MessageText: "icon is recommended",
+			}},
+		},
+		{
+			Scenario: "subchart values file does not exist",
+			RuleText: "error_lint_ignore=file does not exist",
+			Ignorables: []LintedMessage{{
+				ChartPath:   "../gitlab/chart/charts/gluon-0.5.0.tgz",
+				MessagePath: "values.yaml",
+				MessageText: "file does not exist",
 			}},
 		},
 	}
