@@ -79,7 +79,7 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 		result.Messages = append(result.Messages, keeperMessages...)
 
 		result.TotalChartsLinted++
-		for _, msg := range linter.Messages {
+		for _, msg := range result.Messages {
 			if msg.Severity >= lowestTolerance {
 				slog.Info("action/lint/Run is promoting a message to Error", "chartIndex", chartIndex, "path", path, "lowestTolerance", lowestTolerance, msg.LogAttrs())
 				result.Errors = append(result.Errors, msg.Err)

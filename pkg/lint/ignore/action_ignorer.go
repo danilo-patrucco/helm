@@ -25,7 +25,7 @@ func (ai *ActionIgnorer) LoadFromRuleText(ruleText string) {
 func (ai *ActionIgnorer) FilterMessages(messages []support.Message) []support.Message {
 	out := make([]support.Message, 0, len(messages))
 	for _, msg := range messages {
-		if ai.ShouldKeepMessage(msg) {
+		if ai.ShouldKeepError(msg.Err) {
 			out = append(out, msg)
 		}
 	}
@@ -51,12 +51,6 @@ func (ai *ActionIgnorer) ShouldKeepError(err error) bool {
 
 	// keep it!
 	return true
-}
-
-func (ai *ActionIgnorer) ShouldKeepMessage(message support.Message) bool {
-	ai.Info("action/lint/Run captured a message", "Kind", "Message", message.LogAttrs())
-
-	return ai.ShouldKeepError(message.Err)
 }
 
 func (ai *ActionIgnorer) Info(msg string, args ...any) {
