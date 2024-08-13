@@ -3,7 +3,6 @@ package ignore
 import (
 	"fmt"
 	"helm.sh/helm/v3/pkg/lint"
-	"helm.sh/helm/v3/pkg/lint/support"
 	"strings"
 )
 
@@ -22,29 +21,10 @@ func NewRule(ruleText string) *Rule {
 }
 
 func (r Rule) ShouldKeepLintedMessage(msg LintedMessage) bool {
-	ignorer := lint.Ignorer{}
-
+	cmdIgnorer := lint.Ignorer{}
 	rdr := strings.NewReader(r.RuleText)
-	ignorer.LoadFromReader(rdr)
+	cmdIgnorer.LoadFromReader(rdr)
 
-	testTheseMessages := []support.Message{
-		{
-			Severity: 3,
-			Path:     msg.MessagePath,
-			Err:      fmt.Errorf(msg.MessageText),
-		},
-	}
-
-	keptMessages := ignorer.FilterMessages(testTheseMessages)
-	return len(keptMessages) > 0
-}
-
-func (r Rule) ShouldKeepLintedError(msg LintedMessage) bool {
-	ignorer := lint.Ignorer{}
-
-	rdr := strings.NewReader(r.RuleText)
-	ignorer.LoadFromReader(rdr)
-
-	keptMessagesbool := ignorer.IsIgnoredPathlessError(msg.MessageText)
-	return keptMessagesbool
+	actionIgnorer := ActionIgnorer{ CmdIgnorer: &cmdIgnorer }
+	return actionIgnorer.ShouldKeepError(fmt.Errorf(msg.MessageText))
 }

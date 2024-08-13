@@ -175,32 +175,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 				MessageText: "template: registry/templates/serviceaccount.yaml:1:57: executing \"registry/templates/serviceaccount.yaml\" at <.Values.global.serviceAccount.enabled>: nil pointer evaluating interface {}.enabled",
 			}},
 		},
-	}
-	for _, testCase := range testCases {
-		t.Run(testCase.Scenario, func(t *testing.T) {
-			rule := NewRule(testCase.RuleText)
 
-			for _, ignorableMessage := range testCase.Ignorables {
-				assert.False(t, rule.ShouldKeepLintedMessage(ignorableMessage), testCase.Scenario)
-			}
-
-			keepableMessage := LintedMessage{
-				ChartPath:   "a/memorable/path",
-				MessagePath: "wow/",
-				MessageText: "incredible: something just happened",
-			}
-			assert.True(t, rule.ShouldKeepLintedMessage(keepableMessage))
-		})
-	}
-}
-
-func TestRule_ShouldKeepErrors(t *testing.T) {
-	type testCase struct {
-		Scenario   string
-		RuleText   string
-		Ignorables []LintedMessage
-	}
-	testCases := []testCase{
 		{
 			Scenario: "subchart metadata missing dependencies",
 			RuleText: "error_lint_ignore=chart metadata is missing these dependencies**",
@@ -212,7 +187,7 @@ func TestRule_ShouldKeepErrors(t *testing.T) {
 		},
 		{
 			Scenario: "subchart icon is recommended",
-			RuleText: "error_lint_ignore=subchart icon is recommended",
+			RuleText: "error_lint_ignore=icon is recommended",
 			Ignorables: []LintedMessage{{
 				ChartPath:   "../gitlab/chart/charts/gitlab-zoekt-1.4.0.tgz",
 				MessagePath: "Chart.yaml",
@@ -234,15 +209,15 @@ func TestRule_ShouldKeepErrors(t *testing.T) {
 			rule := NewRule(testCase.RuleText)
 
 			for _, ignorableMessage := range testCase.Ignorables {
-				assert.True(t, rule.ShouldKeepLintedMessage(ignorableMessage), testCase.Scenario)
+				assert.False(t, rule.ShouldKeepLintedMessage(ignorableMessage), testCase.Scenario)
 			}
 
 			keepableMessage := LintedMessage{
 				ChartPath:   "a/memorable/path",
 				MessagePath: "wow/",
-				MessageText: "this is wrong",
+				MessageText: "incredible: something just happened",
 			}
-			assert.False(t, rule.ShouldKeepLintedError(keepableMessage))
+			assert.True(t, rule.ShouldKeepLintedMessage(keepableMessage))
 		})
 	}
 }

@@ -55,23 +55,27 @@ func NewLint() *Lint {
 }
 
 // Run executes 'helm Lint' against the given chart.
-func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
+func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePath string, debugLogFn func(string, ...interface{}) ) *LintResult {
 	lowestTolerance := support.ErrorSev
 	if l.Strict {
 		lowestTolerance = support.WarningSev
 	}
 	result := &LintResult{}
 	for chartIndex, path := range paths {
-		ignorer := ignore.Ignorer{ ChartPath: path }
+		actionIgnorer := ignore.ActionIgnorer{ ChartPath: path, CmdIgnorer: lint.NewIgnorer(path, lintIgnoreFilePath, debugLogFn) }
+
 		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion)
 		if err != nil {
-			if ignorer.ShouldKeepError(err) {
+			// ❗ Discard ignorable errors as early as possible
+			if actionIgnorer.ShouldKeepError(err) {
 				result.Errors = append(result.Errors, err)
 			}
 			continue
 		}
 
-		keeperMessages := ignorer.FilterMessages(linter.Messages)
+		// ❗ Discard ignorable messages as early as possible, BEFORE they get duplicated as errors
+		// in the loop below
+		keeperMessages := actionIgnorer.FilterMessages(linter.Messages)
 		result.Messages = append(result.Messages, keeperMessages...)
 
 		result.TotalChartsLinted++

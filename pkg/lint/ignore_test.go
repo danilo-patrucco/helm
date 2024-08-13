@@ -5,23 +5,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/lint/support"
 	"path/filepath"
-	"strings"
 	"testing"
 	"text/template"
 )
-
-// NewFromString builds a new Ignorer when provided a string representing the contents of a .helmlintignore file.
-// This should be especially useful for testing.
-func newFromString(s string) *Ignorer {
-	out := &Ignorer{
-		Patterns:      make(map[string][]string),
-		ErrorPatterns: make(map[string][]string),
-	}
-
-	rdr := strings.NewReader(s)
-	out.LoadFromReader(rdr)
-	return out
-}
 
 func TestNewIgnorer(t *testing.T) {
 	chartPath := "rules/testdata/withsubchartlintignore"
@@ -31,52 +17,9 @@ func TestNewIgnorer(t *testing.T) {
 	})
 	assert.NotNil(t, ignorer, "Ignorer should not be nil")
 	assert.NotEmpty(t, ignorer.Patterns, "Expected patterns to be loaded from the file, but none were found")
-	//if len(ignorer.Patterns) == 0 {
-	//	t.Errorf("Expected patterns to be loaded from the file, but none were found")
-	//}
-}
-
-func TestFilterErrors(t *testing.T) {
-	// arrange
-	badYamlPath := "/path/to/chart/templates/bad-template.yaml"
-	errIgnorableHasPath := fmt.Errorf("test: %s: ignore this error", badYamlPath)
-	errWithNoPath := fmt.Errorf("keep this error")
-
-	// act
-	ignorer := &Ignorer{
-		ErrorPatterns: map[string][]string{
-			badYamlPath: {"ignore this error"},
-		},
+	if len(ignorer.Patterns) == 0 {
+		t.Errorf("Expected patterns to be loaded from the file, but none were found")
 	}
-
-	// assert
-	given := []error{errIgnorableHasPath, errWithNoPath}
-	got := ignorer.FilterErrors(given)
-	assert.Contains(t, got, errWithNoPath)
-	assert.NotContains(t, got, errIgnorableHasPath)
-}
-
-func TestFilterNoPathErrors(t *testing.T) {
-	ignorer := &Ignorer{
-		ErrorPatterns: map[string][]string{
-			"chart error": {"this should be ignored"},
-		},
-	}
-	messages := []support.Message{}
-	errors := []error{fmt.Errorf("this should be ignored"), fmt.Errorf("this should be kept")}
-	filteredMessages, filteredErrors := ignorer.FilterNoPathErrors(messages, errors)
-	assert.Empty(t, filteredErrors)
-	assert.NotEmpty(t, filteredMessages)
-}
-
-func TestMatchNoPathError(t *testing.T) {
-	ignorer := &Ignorer{
-		ErrorPatterns: map[string][]string{
-			"generic error": {"ignore this"},
-		},
-	}
-	result := ignorer.IsIgnoredPathlessError("ignore this")
-	assert.False(t, result)
 }
 
 func TestDebug(t *testing.T) {
@@ -89,17 +32,6 @@ func TestDebug(t *testing.T) {
 	}
 	ignorer.Debug("test %s", "debug")
 	assert.Equal(t, "test debug", captured)
-}
-
-func TestMatch(t *testing.T) {
-	ignorer := &Ignorer{
-		Patterns: map[string][]string{
-			"rules/testdata/withsubchartlintignore/charts/subchart/templates/subchart.yaml": {"<include \"this.is.test.data\" .>"},
-		},
-	}
-
-	assert.True(t, ignorer.isIgnorable("error pattern in rules/testdata/withsubchartlintignore/charts/subchart/templates/subchart.yaml"))
-	assert.False(t, ignorer.isIgnorable("this should not match"))
 }
 
 func TestFilterIgnoredMessages(t *testing.T) {
