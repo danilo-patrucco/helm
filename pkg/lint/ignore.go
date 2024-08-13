@@ -83,13 +83,16 @@ func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
 func (i *Ignorer) FilterNoPathErrors(messages []support.Message, errors []error) ([]support.Message, []error) {
 	KeepersErr := make([]error, 0)
 	KeepersMsg := make([]support.Message, 0)
-	for _, err := range errors {
-		if i.IsIgnoredPathlessError(err.Error()) {
-			continue
-		}
-		KeepersErr = append(KeepersErr, err)
-		for _, msg := range messages {
-			KeepersMsg = append(KeepersMsg, msg)
+	//count := 0
+	for _, msg := range messages {
+		for _, err := range errors {
+			if i.IsIgnoredPathlessError(err.Error()) {
+				continue
+			}
+			KeepersErr = append(KeepersErr, err)
+			if strings.Contains(msg.Error(), err.Error()) {
+				KeepersMsg = append(KeepersMsg, msg)
+			}
 		}
 	}
 	return KeepersMsg, KeepersErr
