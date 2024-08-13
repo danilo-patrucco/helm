@@ -22,10 +22,10 @@ type CmdIgnorer struct {
 // an CmdIgnorer will seek out at load/parse time.
 const DefaultIgnoreFileName = ".helmlintignore"
 
-// NewIgnorer builds an CmdIgnorer object that enables helm to discard specific lint result Messages
+// NewCmdIgnorer builds an CmdIgnorer object that enables helm to discard specific lint result Messages
 // and Errors should they match the ignore rules in the specified .helmlintignore file.
-func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...interface{})) *CmdIgnorer {
-	ignorer := &CmdIgnorer{
+func NewCmdIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...interface{})) (*CmdIgnorer, error) {
+	out := &CmdIgnorer{
 		debugFnOverride: debugLogFn,
 		Patterns:        make(map[string][]string),
 		ErrorPatterns:   make(map[string][]string),
@@ -33,12 +33,21 @@ func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...int
 
 	if ignoreFilePath == "" {
 		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
-		ignorer.Debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", ignoreFilePath)
+		out.Debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", ignoreFilePath)
 	}
 
-	ignorer.Debug("\nUsing ignore file: %s\n", ignoreFilePath)
-	ignorer.loadFromFilePath(ignoreFilePath)
-	return ignorer
+	// attempt to load ignore patterns from ignoreFilePath.
+	// if none are found, return an empty ignorer so the program can keep running.
+	out.Debug("\nUsing ignore file: %s\n", ignoreFilePath)
+	file, err := os.Open(ignoreFilePath)
+	if err != nil {
+		out.Debug("failed to open lint ignore file: %s", ignoreFilePath)
+		return out, nil
+	}
+	defer file.Close()
+
+	out.LoadFromReader(file)
+	return out, nil
 }
 
 // IsIgnoredPathlessError checks a given string to determine whether it looks like a

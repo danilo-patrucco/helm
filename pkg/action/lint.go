@@ -62,7 +62,12 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 	}
 	result := &LintResult{}
 	for chartIndex, path := range paths {
-		actionIgnorer := ignore.ActionIgnorer{ ChartPath: path, CmdIgnorer: ignore.NewIgnorer(path, lintIgnoreFilePath, debugLogFn) }
+		// attempt to build an action-level lint result ignorer
+		actionIgnorer, err := ignore.NewActionIgnorer(path, lintIgnoreFilePath, debugLogFn)
+		if err != nil {
+			result.Errors = append(result.Errors, err)
+			continue
+		}
 
 		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion)
 		if err != nil {

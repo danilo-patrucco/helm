@@ -10,9 +10,10 @@ import (
 func TestNewIgnorer(t *testing.T) {
 	chartPath := "../rules/testdata/withsubchartlintignore"
 	ignoreFilePath := filepath.Join(chartPath, ".helmlintignore")
-	ignorer := NewIgnorer(chartPath, ignoreFilePath, func(format string, args ...interface{}) {
+	ignorer, err := NewCmdIgnorer(chartPath, ignoreFilePath, func(format string, args ...interface{}) {
 		t.Logf(format, args...)
 	})
+	assert.NoError(t, err)
 	assert.NotNil(t, ignorer, "CmdIgnorer should not be nil")
 	assert.NotEmpty(t, ignorer.Patterns, "Expected patterns to be loaded from the file, but none were found")
 	if len(ignorer.Patterns) == 0 {
