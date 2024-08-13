@@ -2,7 +2,6 @@ package ignore
 
 import (
 	"fmt"
-	"helm.sh/helm/v3/pkg/lint"
 	"strings"
 )
 
@@ -21,7 +20,7 @@ func NewRule(ruleText string) *Rule {
 }
 
 func (r Rule) ShouldKeepLintedMessage(msg LintedMessage) bool {
-	cmdIgnorer := lint.Ignorer{}
+	cmdIgnorer := CmdIgnorer{}
 	rdr := strings.NewReader(r.RuleText)
 	cmdIgnorer.LoadFromReader(rdr)
 
