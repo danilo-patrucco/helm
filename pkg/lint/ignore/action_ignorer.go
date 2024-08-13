@@ -1,7 +1,6 @@
 package ignore
 
 import (
-	"helm.sh/helm/v3/pkg/lint"
 	"helm.sh/helm/v3/pkg/lint/support"
 	"log/slog"
 	"os"
@@ -12,11 +11,11 @@ type ActionIgnorer struct {
 	ChartPath string
 	Rules     []Rule
 	logger    *slog.Logger
-	CmdIgnorer *lint.Ignorer
+	CmdIgnorer *CmdIgnorer
 }
 
 func (ai *ActionIgnorer) LoadFromRuleText(ruleText string) {
-	ai.CmdIgnorer = &lint.Ignorer{}
+	ai.CmdIgnorer = &CmdIgnorer{}
 	rdr := strings.NewReader(ruleText)
 	ai.CmdIgnorer.LoadFromReader(rdr)
 	return
