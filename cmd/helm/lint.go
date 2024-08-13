@@ -30,7 +30,6 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/lint"
 	"helm.sh/helm/v3/pkg/lint/support"
 )
 
@@ -94,15 +93,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 
 			for _, path := range paths {
 				// lint the file
-				result := client.Run([]string{path}, vals)
-
-				// try to build lint ignorer from available helm lint ignore file
-				ignorer := lint.NewIgnorer(path, lintIgnoreFilePath, debug)
-
-				// discard ignored messages and errors
-				if result.Errors != nil {
-					result.Messages, result.Errors = ignorer.FilterLintResult(result.Messages, result.Errors)
-				}
+				result := client.Run([]string{path}, vals, lintIgnoreFilePath, debug)
 
 				// If there are no errors/warnings and quiet flag is set
 				// go to the next chart

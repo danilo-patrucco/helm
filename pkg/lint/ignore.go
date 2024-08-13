@@ -42,21 +42,13 @@ func NewIgnorer(chartPath, ignoreFilePath string, debugLogFn func(string, ...int
 	return ignorer
 }
 
-func (i *Ignorer) FilterLintResult(messages []support.Message, errors []error) ([]support.Message, []error) {
-	support.DumpInputsAsJsonLines(messages, errors)
-
-	messagesFiltered := i.FilterMessages(messages)
-	errorsFiltered := i.FilterErrors(errors)
-	return i.FilterNoPathErrors(messagesFiltered, errorsFiltered)
-}
-
 // FilterErrors takes a slice of errors and returns a new slice containing only the
 // errors that do not match this Ignorer's ignore string patterns.
 func (i *Ignorer) FilterErrors(errors []error) []error {
 	keepers := make([]error, 0)
 	for _, err := range errors {
 		errText := err.Error()
-		if !i.isIgnorable(errText) {
+		if !i.IsIgnorable(errText) {
 			i.debugFnOverride("not filtering this error because it is not ignorable: %s", errText)
 			keepers = append(keepers, err)
 		}
@@ -71,31 +63,11 @@ func (i *Ignorer) FilterErrors(errors []error) []error {
 func (i *Ignorer) FilterMessages(messages []support.Message) []support.Message {
 	keepers := make([]support.Message, 0)
 	for _, msg := range messages {
-		if !i.isIgnorable(msg.Err.Error()) {
+		if !i.IsIgnorable(msg.Err.Error()) {
 			keepers = append(keepers, msg)
 		}
 	}
 	return keepers
-}
-
-// FilterNoPathErrors takes a slice of linter result Messages and a slice of errors and returns
-// only those Messages and errors that do not match this Ignorer's ignore string patterns.
-func (i *Ignorer) FilterNoPathErrors(messages []support.Message, errors []error) ([]support.Message, []error) {
-	KeepersErr := make([]error, 0)
-	KeepersMsg := make([]support.Message, 0)
-	//count := 0
-	for _, msg := range messages {
-		for _, err := range errors {
-			if i.IsIgnoredPathlessError(err.Error()) {
-				continue
-			}
-			KeepersErr = append(KeepersErr, err)
-			if strings.Contains(msg.Error(), err.Error()) {
-				KeepersMsg = append(KeepersMsg, msg)
-			}
-		}
-	}
-	return KeepersMsg, KeepersErr
 }
 
 // IsIgnoredPathlessError checks a given string to determine whether it looks like a
@@ -135,7 +107,7 @@ func (i *Ignorer) Debug(format string, args ...interface{}) {
 	i.debugFnOverride(format, args...)
 }
 
-func (i *Ignorer) isIgnorable(errText string) bool {
+func (i *Ignorer) IsIgnorable(errText string) bool {
 	errorFullPath, err := extractFullPathFromError(errText)
 	if err != nil {
 		i.Debug("Unable to find a path for error, guess we'll keep it: %s, %v", errText, err)
