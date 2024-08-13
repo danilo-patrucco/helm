@@ -14,6 +14,15 @@ type ActionIgnorer struct {
 	CmdIgnorer *CmdIgnorer
 }
 
+func NewActionIgnorer(chartPath string, lintIgnorePath string, debugLogFn func(string, ...interface{})) (*ActionIgnorer, error) {
+	cmdIgnorer, err := NewCmdIgnorer(chartPath, lintIgnorePath, debugLogFn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ActionIgnorer{ ChartPath: chartPath, CmdIgnorer: cmdIgnorer }, nil
+}
+
 func (ai *ActionIgnorer) LoadFromRuleText(ruleText string) {
 	ai.CmdIgnorer = &CmdIgnorer{}
 	rdr := strings.NewReader(ruleText)
