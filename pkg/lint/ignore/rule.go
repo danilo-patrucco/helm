@@ -38,3 +38,13 @@ func (r Rule) ShouldKeepLintedMessage(msg LintedMessage) bool {
 	keptMessages := ignorer.FilterMessages(testTheseMessages)
 	return len(keptMessages) > 0
 }
+
+func (r Rule) ShouldKeepLintedError(msg LintedMessage) bool {
+	ignorer := lint.Ignorer{}
+
+	rdr := strings.NewReader(r.RuleText)
+	ignorer.LoadFromReader(rdr)
+
+	keptMessagesbool := ignorer.IsIgnoredPathlessError(msg.MessageText)
+	return keptMessagesbool
+}
