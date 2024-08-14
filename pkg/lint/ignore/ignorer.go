@@ -19,7 +19,7 @@ type PathlessRule struct {
 	MessageText string
 }
 
-// Ignorer is used to create the ignorer object that contains
+// Ignorer is used to create the ignorer object that contains the ignore rules
 func NewActionIgnorer(chartPath string, lintIgnorePath string, debugLogFn func(string, ...interface{})) (*Ignorer, error) {
 	cmdIgnorer, err := NewRuleLoader(chartPath, lintIgnorePath, debugLogFn)
 	if err != nil {
