@@ -17,6 +17,9 @@ limitations under the License.
 package action
 
 import (
+	"fmt"
+	"helm.sh/helm/v3/pkg/cli"
+	"log"
 	"testing"
 )
 
@@ -28,6 +31,15 @@ var (
 	corruptedTgzChart       = "testdata/charts/corrupted-compressed-chart.tgz"
 	chartWithNoTemplatesDir = "testdata/charts/chart-with-no-templates-dir"
 )
+var settings = cli.New()
+var lintIgnoreFilePath string
+
+func debug(format string, v ...interface{}) {
+	if settings.Debug {
+		format = fmt.Sprintf("[debug] %s\n", format)
+		log.Output(2, fmt.Sprintf(format, v...))
+	}
+}
 
 func TestLintChart(t *testing.T) {
 	tests := []struct {
@@ -94,7 +106,7 @@ func TestNonExistentChart(t *testing.T) {
 		expectedError := "unable to open tarball: open non-existent-chart.tgz: no such file or directory"
 		testLint := NewLint()
 
-		result := testLint.Run(testCharts, values)
+		result := testLint.Run(testCharts, values, lintIgnoreFilePath, debug)
 		if len(result.Errors) != 1 {
 			t.Error("expected one error, but got", len(result.Errors))
 		}
@@ -110,7 +122,7 @@ func TestNonExistentChart(t *testing.T) {
 		expectedEOFError := "unable to extract tarball: EOF"
 		testLint := NewLint()
 
-		result := testLint.Run(testCharts, values)
+		result := testLint.Run(testCharts, values, lintIgnoreFilePath, debug)
 		if len(result.Errors) != 1 {
 			t.Error("expected one error, but got", len(result.Errors))
 		}
@@ -125,7 +137,7 @@ func TestNonExistentChart(t *testing.T) {
 func TestLint_MultipleCharts(t *testing.T) {
 	testCharts := []string{chart2MultipleChartLint, chart1MultipleChartLint}
 	testLint := NewLint()
-	if result := testLint.Run(testCharts, values); len(result.Errors) > 0 {
+	if result := testLint.Run(testCharts, values, lintIgnoreFilePath, debug); len(result.Errors) > 0 {
 		t.Error(result.Errors)
 	}
 }
@@ -133,7 +145,7 @@ func TestLint_MultipleCharts(t *testing.T) {
 func TestLint_EmptyResultErrors(t *testing.T) {
 	testCharts := []string{chart2MultipleChartLint}
 	testLint := NewLint()
-	if result := testLint.Run(testCharts, values); len(result.Errors) > 0 {
+	if result := testLint.Run(testCharts, values, lintIgnoreFilePath, debug); len(result.Errors) > 0 {
 		t.Error("Expected no error, got more")
 	}
 }
@@ -143,7 +155,7 @@ func TestLint_ChartWithWarnings(t *testing.T) {
 		testCharts := []string{chartWithNoTemplatesDir}
 		testLint := NewLint()
 		testLint.Strict = false
-		if result := testLint.Run(testCharts, values); len(result.Errors) > 0 {
+		if result := testLint.Run(testCharts, values, lintIgnoreFilePath, debug); len(result.Errors) > 0 {
 			t.Error("Expected no error, got more")
 		}
 	})
@@ -152,7 +164,7 @@ func TestLint_ChartWithWarnings(t *testing.T) {
 		testCharts := []string{chartWithNoTemplatesDir}
 		testLint := NewLint()
 		testLint.Strict = true
-		if result := testLint.Run(testCharts, values); len(result.Errors) != 0 {
+		if result := testLint.Run(testCharts, values, lintIgnoreFilePath, debug); len(result.Errors) != 0 {
 			t.Error("expected no errors, but got", len(result.Errors))
 		}
 	})
