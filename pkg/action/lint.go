@@ -17,6 +17,7 @@ limitations under the License.
 package action
 
 import (
+	"fmt"
 	"helm.sh/helm/v3/pkg/lint/ignore"
 	"log/slog"
 	"os"
@@ -63,7 +64,7 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 	result := &LintResult{}
 	for chartIndex, path := range paths {
 		// attempt to build an action-level lint result ignorer
-		actionIgnorer, err := ignore.Ignorer(path, lintIgnoreFilePath, debugLogFn)
+		actionIgnorer, err := ignore.NewActionIgnorer(path, lintIgnoreFilePath, debugLogFn)
 		if err != nil {
 			result.Errors = append(result.Errors, err)
 			continue
@@ -113,13 +114,23 @@ func lintChart(path string, vals map[string]interface{}, namespace string, kubeV
 		if err != nil {
 			return linter, errors.Wrap(err, "unable to create temp dir to extract tarball")
 		}
-		defer os.RemoveAll(tempDir)
+		defer func(path string) {
+			err := os.RemoveAll(path)
+			if err != nil {
+				fmt.Printf("Unable to remove the tem dir to extract tarball: %v\n", err)
+			}
+		}(tempDir)
 
 		file, err := os.Open(path)
 		if err != nil {
 			return linter, errors.Wrap(err, "unable to open tarball")
 		}
-		defer file.Close()
+		defer func(file *os.File) {
+			err := file.Close()
+			if err != nil {
+				fmt.Printf("Unable to close the file: %v\n", err)
+			}
+		}(file)
 
 		if err = chartutil.Expand(tempDir, file); err != nil {
 			return linter, errors.Wrap(err, "unable to extract tarball")
