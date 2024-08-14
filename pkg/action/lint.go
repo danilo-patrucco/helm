@@ -55,27 +55,36 @@ func NewLint() *Lint {
 }
 
 // Run executes 'helm Lint' against the given chart.
-func (l *Lint) Run(paths []string, vals map[string]interface{}) *LintResult {
+func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePath string, debugLogFn func(string, ...interface{}) ) *LintResult {
 	lowestTolerance := support.ErrorSev
 	if l.Strict {
 		lowestTolerance = support.WarningSev
 	}
 	result := &LintResult{}
 	for chartIndex, path := range paths {
-		ignorer := ignore.Ignorer{ ChartPath: path }
+		// attempt to build an action-level lint result ignorer
+		actionIgnorer, err := ignore.NewActionIgnorer(path, lintIgnoreFilePath, debugLogFn)
+		if err != nil {
+			result.Errors = append(result.Errors, err)
+			continue
+		}
+
 		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion)
 		if err != nil {
-			if ignorer.ShouldKeepError(err) {
+			// ❗ Discard ignorable errors as early as possible
+			if actionIgnorer.ShouldKeepError(err) {
 				result.Errors = append(result.Errors, err)
 			}
 			continue
 		}
 
-		keeperMessages := ignorer.FilterMessages(linter.Messages)
+		// ❗ Discard ignorable messages as early as possible, BEFORE they get duplicated as errors
+		// in the loop below
+		keeperMessages := actionIgnorer.FilterMessages(linter.Messages)
 		result.Messages = append(result.Messages, keeperMessages...)
 
 		result.TotalChartsLinted++
-		for _, msg := range linter.Messages {
+		for _, msg := range result.Messages {
 			if msg.Severity >= lowestTolerance {
 				slog.Info("action/lint/Run is promoting a message to Error", "chartIndex", chartIndex, "path", path, "lowestTolerance", lowestTolerance, msg.LogAttrs())
 				result.Errors = append(result.Errors, msg.Err)

@@ -2,13 +2,15 @@ package ignore
 
 import (
 	"fmt"
-	"helm.sh/helm/v3/pkg/lint"
-	"helm.sh/helm/v3/pkg/lint/support"
+	"log/slog"
+	"path/filepath"
 	"strings"
 )
 
 type Rule struct {
-	RuleText string
+	RuleText    string
+	MessagePath string
+	MessageText string
 }
 
 type LintedMessage struct {
@@ -18,33 +20,41 @@ type LintedMessage struct {
 }
 
 func NewRule(ruleText string) *Rule {
-	return &Rule{ruleText}
+	return &Rule{RuleText: ruleText}
 }
 
 func (r Rule) ShouldKeepLintedMessage(msg LintedMessage) bool {
-	ignorer := lint.Ignorer{}
-
+	cmdIgnorer := RuleLoader{}
 	rdr := strings.NewReader(r.RuleText)
-	ignorer.LoadFromReader(rdr)
+	cmdIgnorer.LoadFromReader(rdr)
 
-	testTheseMessages := []support.Message{
-		{
-			Severity: 3,
-			Path:     msg.MessagePath,
-			Err:      fmt.Errorf(msg.MessageText),
-		},
-	}
-
-	keptMessages := ignorer.FilterMessages(testTheseMessages)
-	return len(keptMessages) > 0
+	actionIgnorer := ActionIgnorer{RuleLoader: &cmdIgnorer}
+	return actionIgnorer.ShouldKeepError(fmt.Errorf(msg.MessageText))
 }
 
-func (r Rule) ShouldKeepLintedError(msg LintedMessage) bool {
-	ignorer := lint.Ignorer{}
+func (r Rule) LogAttrs() slog.Attr {
+	return slog.Group("Rule",
+		slog.String("rule_text", r.RuleText),
+		slog.String("key", r.MessagePath),
+		slog.String("value", r.MessageText),
+	)
+}
 
-	rdr := strings.NewReader(r.RuleText)
-	ignorer.LoadFromReader(rdr)
+func (r Rule) Match(errText string) *RuleMatch {
+	errorFullPath, err := extractFullPathFromError(errText)
+	if err != nil {
+		return nil
+	}
 
-	keptMessagesbool := ignorer.IsIgnoredPathlessError(msg.MessageText)
-	return keptMessagesbool
+	ignorablePath := r.MessagePath
+	ignorableText := r.MessageText
+	cleanIgnorablePath := filepath.Clean(ignorablePath)
+
+	if strings.Contains(errorFullPath, cleanIgnorablePath) {
+		if strings.Contains(errText, ignorableText) {
+			return &RuleMatch{ErrText: errText, RuleText: r.RuleText}
+		}
+	}
+
+	return nil
 }
