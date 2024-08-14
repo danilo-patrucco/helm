@@ -237,15 +237,3 @@ info:
 	 @echo "Git Tag:           ${GIT_TAG}"
 	 @echo "Git Commit:        ${GIT_COMMIT}"
 	 @echo "Git Tree State:    ${GIT_DIRTY}"
-
-bb-with-ignore:
-	go run ./cmd/helm lint ../gitlab/chart/ --with-subcharts --lint-ignore-file=../gitlab/chart/.helmlintignore --quiet
-
-bb-without-ignore:
-	go run ./cmd/helm lint ../gitlab/chart/ --with-subcharts --quiet
-
-bb-test:
-	go test -failfast ./pkg/lint/...
-
-
-bb-check: bb-test bb-with-ignore bb-without-ignore

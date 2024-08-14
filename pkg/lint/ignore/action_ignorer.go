@@ -12,7 +12,7 @@ type ActionIgnorer struct {
 	RuleLoader *RuleLoader
 }
 
-func NewActionIgnorer(chartPath string, lintIgnorePath string, debugLogFn func(string, ...interface{})) (*ActionIgnorer, error) {
+func Ignorer(chartPath string, lintIgnorePath string, debugLogFn func(string, ...interface{})) (*ActionIgnorer, error) {
 	cmdIgnorer, err := NewRuleLoader(chartPath, lintIgnorePath, debugLogFn)
 	if err != nil {
 		return nil, err
