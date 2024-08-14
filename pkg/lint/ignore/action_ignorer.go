@@ -3,31 +3,22 @@ package ignore
 import (
 	"helm.sh/helm/v3/pkg/lint/support"
 	"log/slog"
-	"os"
-	"strings"
 )
 
 type ActionIgnorer struct {
-	ChartPath string
-	Rules     []Rule
-	logger    *slog.Logger
-	CmdIgnorer *CmdIgnorer
+	ChartPath  string
+	Rules      []Rule
+	logger     *slog.Logger
+	RuleLoader *RuleLoader
 }
 
 func NewActionIgnorer(chartPath string, lintIgnorePath string, debugLogFn func(string, ...interface{})) (*ActionIgnorer, error) {
-	cmdIgnorer, err := NewCmdIgnorer(chartPath, lintIgnorePath, debugLogFn)
+	cmdIgnorer, err := NewRuleLoader(chartPath, lintIgnorePath, debugLogFn)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ActionIgnorer{ ChartPath: chartPath, CmdIgnorer: cmdIgnorer }, nil
-}
-
-func (ai *ActionIgnorer) LoadFromRuleText(ruleText string) {
-	ai.CmdIgnorer = &CmdIgnorer{}
-	rdr := strings.NewReader(ruleText)
-	ai.CmdIgnorer.LoadFromReader(rdr)
-	return
+	return &ActionIgnorer{ChartPath: chartPath, RuleLoader: cmdIgnorer}, nil
 }
 
 func (ai *ActionIgnorer) FilterMessages(messages []support.Message) []support.Message {
@@ -43,32 +34,15 @@ func (ai *ActionIgnorer) FilterMessages(messages []support.Message) []support.Me
 func (ai *ActionIgnorer) ShouldKeepError(err error) bool {
 	errText := err.Error()
 
-	// log it
-	logAttr := slog.Group("Err", slog.String("text", errText))
-	ai.Info("action/lint/Run captured an error", "Kind", "Error", logAttr)
-
-	// do not keep if it matches our basic rules
-	if ai.CmdIgnorer.IsIgnorable(errText) {
-		return false
+	// if any of our Matchers match the rule, we can discard it
+	for _, rule := range ai.RuleLoader.Matchers {
+		match := rule.Match(errText)
+		if match != nil {
+			ai.RuleLoader.Debug("lint ignore rule matched", match.LogAttrs())
+			return false
+		}
 	}
 
-	// do not keep if it matches the pathless error rules
-	if ai.CmdIgnorer.IsIgnoredPathlessError(errText) {
-		return false
-	}
-
-	// keep it!
+	// if we can't find a reason to discard it, we keep it
 	return true
-}
-
-func (ai *ActionIgnorer) Info(msg string, args ...any) {
-	if ai.logger == nil {
-		ai.logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	}
-
-	baseAttrs := slog.Group("Chart",
-		slog.String("Path", ai.ChartPath),
-	)
-
-	ai.logger.With(baseAttrs).Info(msg, args...)
 }
