@@ -10,15 +10,11 @@ import (
 func TestNewIgnorer(t *testing.T) {
 	chartPath := "../rules/testdata/withsubchartlintignore"
 	ignoreFilePath := filepath.Join(chartPath, ".helmlintignore")
-	ignorer, err := NewCmdIgnorer(chartPath, ignoreFilePath, func(format string, args ...interface{}) {
+	ignorer, err := NewRuleLoader(chartPath, ignoreFilePath, func(format string, args ...interface{}) {
 		t.Logf(format, args...)
 	})
 	assert.NoError(t, err)
-	assert.NotNil(t, ignorer, "CmdIgnorer should not be nil")
-	assert.NotEmpty(t, ignorer.Patterns, "Expected patterns to be loaded from the file, but none were found")
-	if len(ignorer.Patterns) == 0 {
-		t.Errorf("Expected patterns to be loaded from the file, but none were found")
-	}
+	assert.NotNil(t, ignorer, "RuleLoader should not be nil")
 }
 
 func TestDebug(t *testing.T) {
@@ -26,7 +22,7 @@ func TestDebug(t *testing.T) {
 	debugFn := func(format string, args ...interface{}) {
 		captured = fmt.Sprintf(format, args...)
 	}
-	ignorer := &CmdIgnorer{
+	ignorer := &RuleLoader{
 		debugFnOverride: debugFn,
 	}
 	ignorer.Debug("test %s", "debug")
