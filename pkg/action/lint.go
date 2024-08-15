@@ -35,12 +35,13 @@ import (
 //
 // It provides the implementation of 'helm lint'.
 type Lint struct {
-	Strict         bool
-	Namespace      string
-	WithSubcharts  bool
-	Quiet          bool
-	KubeVersion    *chartutil.KubeVersion
-	IgnoreFilePath string
+	Strict               bool
+	Namespace            string
+	WithSubcharts        bool
+	Quiet                bool
+	KubeVersion          *chartutil.KubeVersion
+	IgnoreFilePath       string
+	SkipSchemaValidation bool
 }
 
 // LintResult is the result of Lint
@@ -70,7 +71,7 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 			continue
 		}
 
-		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion)
+		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion, l.SkipSchemaValidation)
 		if err != nil {
 			// ❗ Discard ignorable errors as early as possible
 			if actionIgnorer.ShouldKeepError(err) {
@@ -105,7 +106,7 @@ func HasWarningsOrErrors(result *LintResult) bool {
 	return len(result.Errors) > 0
 }
 
-func lintChart(path string, vals map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion) (support.Linter, error) {
+func lintChart(path string, vals map[string]interface{}, namespace string, kubeVersion *chartutil.KubeVersion, SkipSchemaValidation bool) (support.Linter, error) {
 	var chartPath string
 	linter := support.Linter{}
 
@@ -154,5 +155,5 @@ func lintChart(path string, vals map[string]interface{}, namespace string, kubeV
 		return linter, errors.Wrap(err, "Chart.yaml file not found in chart")
 	}
 
-	return lint.AllWithKubeVersion(chartPath, vals, namespace, kubeVersion), nil
+	return lint.AllWithKubeVersionAndSchemaValidation(chartPath, vals, namespace, kubeVersion, SkipSchemaValidation), nil
 }
