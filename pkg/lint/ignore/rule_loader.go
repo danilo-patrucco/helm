@@ -62,7 +62,6 @@ func pathToOffendingFile(errText string) (string, error) {
 }
 
 func LoadFromReader(rdr io.Reader) []MatchesErrors {
-	const pathlessPatternPrefix = "error_lint_ignore="
 	matchers := make([]MatchesErrors, 0)
 
 	scanner := bufio.NewScanner(rdr)
@@ -97,7 +96,7 @@ func buildPathlessPattern(line string, pathlessPatternPrefix string) PathlessRul
 	}
 }
 
-func buildPathfulPattern(line string) Rule {
+func buildPathfulPattern(line string) BadTemplateRule {
 	const separator = " "
 	const numSplits = 2
 
@@ -105,9 +104,9 @@ func buildPathfulPattern(line string) Rule {
 	parts := strings.SplitN(line, separator, numSplits)
 	if len(parts) == numSplits {
 		messagePath, messageText := parts[0], parts[1]
-		return Rule{RuleText: line, MessagePath: messagePath, MessageText: messageText}
+		return BadTemplateRule{RuleText: line, BadTemplatePath: messagePath, MessageText: messageText}
 	} else {
 		messagePath := parts[0]
-		return Rule{RuleText: line, MessagePath: messagePath, MessageText: NoMessageText}
+		return BadTemplateRule{RuleText: line, BadTemplatePath: messagePath, MessageText: NoMessageText}
 	}
 }

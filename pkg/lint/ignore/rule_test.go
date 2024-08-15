@@ -195,14 +195,12 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			matcher := matchers[0]
 
 			for _, ignorableMessage := range testCase.Ignorables {
-				errText := ignorableMessage.Err.Error()
-				got := matcher.Match(errText)
+				got := matcher.Match(ignorableMessage.Err)
 				assert.True(t, got, testCase.Scenario)
 			}
 
 			keepableMessage := support.NewMessage(3, "wow/", fmt.Errorf("incredible: something just happened"))
-			errText := keepableMessage.Error()
-			got := matcher.Match(errText)
+			got := matcher.Match(keepableMessage.Err)
 			assert.False(t, got, testCase.Scenario)
 		})
 	}
