@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const pathlessPatternPrefix = "error_lint_ignore="
+const pathlessRulePrefix = "error_lint_ignore="
 
 type MatchesErrors interface {
 	Match(error) bool

@@ -17,7 +17,8 @@ type Ignorer struct {
 }
 
 func NewIgnorer(chartPath string, lintIgnorePath string, debugLogFn func(string, ...interface{})) (*Ignorer, error) {
-	matchers, err := LoadFromFilePath(chartPath, lintIgnorePath, debugLogFn)
+	debugFn = debugLogFn
+	matchers, err := LoadFromFilePath(chartPath, lintIgnorePath)
 	if err != nil {
 		return nil, err
 	}
@@ -57,5 +58,5 @@ func (i *Ignorer) ShouldKeepError(err error) bool {
 
 var defaultDebugFn = func(format string, v ...interface{}) {
 	format = fmt.Sprintf("[debug] %s\n", format)
-	log.Output(2, fmt.Sprintf(format, v...))
+	_ = log.Output(2, fmt.Sprintf(format, v...))
 }

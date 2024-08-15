@@ -9,31 +9,36 @@ import (
 	"strings"
 )
 
-func LoadFromFilePath(chartPath, ignoreFilePath string, debugLogFn func(string, ...interface{})) ([]MatchesErrors, error) {
+func LoadFromFilePath(chartPath, ignoreFilePath string) ([]MatchesErrors, error) {
 	if ignoreFilePath == "" {
 		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
-		debug("\nNo HelmLintIgnore file specified, will try and use the following: %s\n", ignoreFilePath)
+		debug("\nNo helm lint ignore filepath specified, will try and use the following default: %s\n", ignoreFilePath)
 	}
 
 	// attempt to load ignore patterns from ignoreFilePath.
 	// if none are found, return an empty ignorer so the program can keep running.
-	debug("\nUsing ignore file: %s\n", ignoreFilePath)
+	debug("\nTrying to load helm lint ignore file at %s\n", ignoreFilePath)
 	file, err := os.Open(ignoreFilePath)
 	if err != nil {
-		debug("failed to open lint ignore file: %s", ignoreFilePath)
+		debug("failed to open helm lint ignore file: %s", ignoreFilePath)
 		return []MatchesErrors{}, nil
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			debug("failed to close helm lint ignore file: %s", ignoreFilePath)
+		}
+	}()
 
 	matchers := LoadFromReader(file)
 	return matchers, nil
 }
 
-// Debug provides an RuleLoader with a caller-overridable logging function
+// debug provides [pkg/lint/ignore] with a runtime-overridable logging function
 // intended to match the behavior of the top level debug() method from package main.
 //
-// When no i.debugFnOverride is present Debug will fall back to a naive
-// implementation that assumes all debug output should be logged and not swallowed.
+// When no debugFn is set for the package at runtime then debug will fall back to
+// defaultDebugFn.
 func debug(format string, args ...interface{}) {
 	if debugFn == nil {
 		defaultDebugFn(format, args...)
@@ -66,21 +71,21 @@ func LoadFromReader(rdr io.Reader) []MatchesErrors {
 			continue
 		}
 
-		if strings.HasPrefix(line, pathlessPatternPrefix) {
-			matchers = append(matchers, buildPathlessPattern(line, pathlessPatternPrefix))
+		if strings.HasPrefix(line, pathlessRulePrefix) {
+			matchers = append(matchers, buildPathlessRule(line, pathlessRulePrefix))
 		} else {
-			matchers = append(matchers, buildPathfulPattern(line))
+			matchers = append(matchers, buildBadTemplateRule(line))
 		}
 	}
 
 	return matchers
 }
 
-func buildPathlessPattern(line string, pathlessPatternPrefix string) PathlessRule {
+func buildPathlessRule(line string, pathlessRulePrefix string) PathlessRule {
 	// handle chart-level errors
 	// Drop 'error_lint_ignore=' prefix from rule before saving it
 	const numSplits = 2
-	tokens := strings.SplitN(line[len(pathlessPatternPrefix):], pathlessPatternPrefix, numSplits)
+	tokens := strings.SplitN(line[len(pathlessRulePrefix):], pathlessRulePrefix, numSplits)
 	if len(tokens) == numSplits {
 		// TODO: find an example for this one - not sure we still use it
 		messageText, _ := tokens[0], tokens[1]
@@ -91,7 +96,7 @@ func buildPathlessPattern(line string, pathlessPatternPrefix string) PathlessRul
 	}
 }
 
-func buildPathfulPattern(line string) BadTemplateRule {
+func buildBadTemplateRule(line string) BadTemplateRule {
 	const noMessageText = ""
 	const separator = " "
 	const numSplits = 2
