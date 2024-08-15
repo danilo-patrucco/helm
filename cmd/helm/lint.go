@@ -46,7 +46,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 	client := action.NewLint()
 	valueOpts := &values.Options{}
 	var kubeVersion string
-	var lintIgnoreFilePath string
+	var lintIgnoreFile string
 
 	cmd := &cobra.Command{
 		Use:   "lint PATH",
@@ -92,7 +92,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 			errorsOrWarnings := 0
 
 			for _, path := range paths {
-				result := client.Run([]string{path}, vals, lintIgnoreFilePath, debug)
+				result := client.Run([]string{path}, vals, lintIgnoreFile, debug)
 
 				// If there is no errors/warnings and quiet flag is set
 				// go to the next chart
@@ -150,7 +150,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&client.WithSubcharts, "with-subcharts", false, "lint dependent charts")
 	f.BoolVar(&client.Quiet, "quiet", false, "print only warnings and errors")
 	f.StringVar(&kubeVersion, "kube-version", "", "Kubernetes version used for capabilities and deprecation checks")
-	f.StringVar(&lintIgnoreFilePath, "lint-ignore-file", "", "path to .helmlintignore file to specify ignore patterns")
+	f.StringVar(&lintIgnoreFile, "lint-ignore-file", "", "path to .helmlintignore file to specify ignore patterns")
 	addValueOptionsFlags(f, valueOpts)
 
 	return cmd
