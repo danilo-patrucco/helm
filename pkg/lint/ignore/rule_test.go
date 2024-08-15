@@ -199,7 +199,7 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 				assert.True(t, got, testCase.Scenario)
 			}
 
-			keepableMessage := support.NewMessage(3, "wow/", fmt.Errorf("incredible: something just happened"))
+			keepableMessage := support.NewMessage(support.ErrorSev, "wow/", fmt.Errorf("incredible: something just happened"))
 			got := matcher.Match(keepableMessage.Err)
 			assert.False(t, got, testCase.Scenario)
 		})
