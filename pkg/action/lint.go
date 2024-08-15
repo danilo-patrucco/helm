@@ -64,7 +64,7 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 	result := &LintResult{}
 	for chartIndex, path := range paths {
 		// attempt to build an action-level lint result ignorer
-		actionIgnorer, err := ignore.NewActionIgnorer(path, lintIgnoreFilePath, debugLogFn)
+		ignorer, err := ignore.NewIgnorer(path, lintIgnoreFilePath, debugLogFn)
 		if err != nil {
 			result.Errors = append(result.Errors, err)
 			continue
@@ -73,7 +73,7 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 		linter, err := lintChart(path, vals, l.Namespace, l.KubeVersion)
 		if err != nil {
 			// ❗ Discard ignorable errors as early as possible
-			if actionIgnorer.ShouldKeepError(err) {
+			if ignorer.ShouldKeepError(err) {
 				result.Errors = append(result.Errors, err)
 			}
 			continue
@@ -81,7 +81,7 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 
 		// ❗ Discard ignorable messages as early as possible, BEFORE they get duplicated as errors
 		// in the loop below
-		keeperMessages := actionIgnorer.FilterMessages(linter.Messages)
+		keeperMessages := ignorer.FilterMessages(linter.Messages)
 		result.Messages = append(result.Messages, keeperMessages...)
 
 		result.TotalChartsLinted++
