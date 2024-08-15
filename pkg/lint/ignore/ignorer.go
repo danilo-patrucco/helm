@@ -6,6 +6,9 @@ import (
 	"log"
 )
 
+// DefaultIgnoreFileName is the name of the lint ignore file
+const DefaultIgnoreFileName = ".helmlintignore"
+
 var debugFn func(format string, v ...interface{})
 
 type Ignorer struct {

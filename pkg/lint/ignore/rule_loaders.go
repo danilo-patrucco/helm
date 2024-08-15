@@ -9,11 +9,6 @@ import (
 	"strings"
 )
 
-// DefaultIgnoreFileName is the name of the lint ignore file
-const DefaultIgnoreFileName = ".helmlintignore"
-
-const NoMessageText = ""
-
 func LoadFromFilePath(chartPath, ignoreFilePath string, debugLogFn func(string, ...interface{})) ([]MatchesErrors, error) {
 	if ignoreFilePath == "" {
 		ignoreFilePath = filepath.Join(chartPath, DefaultIgnoreFileName)
@@ -97,6 +92,7 @@ func buildPathlessPattern(line string, pathlessPatternPrefix string) PathlessRul
 }
 
 func buildPathfulPattern(line string) BadTemplateRule {
+	const noMessageText = ""
 	const separator = " "
 	const numSplits = 2
 
@@ -107,6 +103,6 @@ func buildPathfulPattern(line string) BadTemplateRule {
 		return BadTemplateRule{RuleText: line, BadTemplatePath: messagePath, MessageText: messageText}
 	} else {
 		messagePath := parts[0]
-		return BadTemplateRule{RuleText: line, BadTemplatePath: messagePath, MessageText: NoMessageText}
+		return BadTemplateRule{RuleText: line, BadTemplatePath: messagePath, MessageText: noMessageText}
 	}
 }
