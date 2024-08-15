@@ -184,12 +184,46 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 				{Path: "values.yaml", Err: fmt.Errorf("file does not exist")},
 			},
 		},
+		{
+			Scenario:   "Chart.yaml missing apiVersion",
+			RuleText:   "Chart.yaml apiVersion is required. The value must be either \"v1\" or \"v2\"" +
+				" ",
+			Ignorables: []support.Message{
+				{
+					Severity: support.ErrorSev,
+					Path:     "Chart.yaml",
+					Err:      fmt.Errorf("apiVersion is required. The value must be either \"v1\" or \"v2\""),
+				},
+			},
+		},
+		{
+			Scenario:   "values.yaml does not exist",
+			RuleText:   "values.yaml file does not exist",
+			Ignorables: []support.Message{
+				{
+					Severity: support.InfoSev,
+					Path:     "values.yaml",
+					Err:      fmt.Errorf("file does not exist"),
+				},
+			},
+		},
+		{
+			Scenario:   "missing dependencies in chart directory",
+			RuleText:   "error_lint_ignore=chart metadata is missing these dependencies: mariadb",
+			Ignorables: []support.Message{
+				{
+					Severity: support.WarningSev,
+					Path:     "/Users/daniel/radius/bb/helm/pkg/action/testdata/charts/chart-missing-deps-but-ignorable",
+					Err:      fmt.Errorf("chart directory is missing these dependencies: mariadb"),
+				},
+			},
+		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.Scenario, func(t *testing.T) {
 			matchers := LoadFromReader(strings.NewReader(testCase.RuleText))
 			if len(matchers) == 0 {
-				t.Fatal("Expected a matcher, got nothing.", testCase.Scenario)
+				t.Fatal("Expected a match, got none.", testCase.Scenario)
 			}
 			assert.Equal(t, 1, len(matchers))
 			matcher := matchers[0]
