@@ -19,7 +19,6 @@ package action
 import (
 	"fmt"
 	"helm.sh/helm/v3/pkg/lint/ignore"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,7 +86,7 @@ func (l *Lint) Run(paths []string, vals map[string]interface{}, lintIgnoreFilePa
 		result.TotalChartsLinted++
 		for _, msg := range result.Messages {
 			if msg.Severity >= lowestTolerance {
-				slog.Info("action/lint/Run is promoting a message to Error", "chartIndex", chartIndex, "path", path, "lowestTolerance", lowestTolerance, msg.LogAttrs())
+				debugLogFn("action/lint/Run is promoting a message to Error", "chartIndex", chartIndex, "path", path, "lowestTolerance", lowestTolerance, msg.LogAttrs())
 				result.Errors = append(result.Errors, msg.Err)
 			}
 		}

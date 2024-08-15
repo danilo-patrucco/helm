@@ -92,10 +92,9 @@ func newLintCmd(out io.Writer) *cobra.Command {
 			errorsOrWarnings := 0
 
 			for _, path := range paths {
-				// lint the file
 				result := client.Run([]string{path}, vals, lintIgnoreFilePath, debug)
 
-				// If there are no errors/warnings and quiet flag is set
+				// If there is no errors/warnings and quiet flag is set
 				// go to the next chart
 				hasWarningsOrErrors := action.HasWarningsOrErrors(result)
 				if hasWarningsOrErrors {
