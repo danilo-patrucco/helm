@@ -1,4 +1,0 @@
-Chart.yaml apiVersion is required. The value must be either "v1" or "v2"
-Chart.yaml icon is recommended
-values.yaml file does not exist
-error_lint_ignore=chart directory is missing these dependencies: mariadb

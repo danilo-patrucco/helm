@@ -30,7 +30,7 @@ var (
 	chart2MultipleChartLint = "testdata/charts/multiplecharts-lint-chart-2"
 	corruptedTgzChart       = "testdata/charts/corrupted-compressed-chart.tgz"
 	chartWithNoTemplatesDir  = "testdata/charts/chart-with-no-templates-dir"
-	messyChartWithLintIgnore = "testdata/charts/chart-missing-deps-but-ignorable"
+	messyChartWithLintIgnore = "testdata/charts/messy-chart-with-lintignore"
 )
 var settings = cli.New()
 const emptyLintIgnoreFilePath = ""
