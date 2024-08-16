@@ -185,9 +185,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			},
 		},
 		{
-			Scenario:   "Chart.yaml missing apiVersion",
-			RuleText:   "Chart.yaml apiVersion is required. The value must be either \"v1\" or \"v2\"" +
-				" ",
+			Scenario: "Chart.yaml missing apiVersion",
+			RuleText: "error_lint_ignore=apiVersion is required. The value must be either \"v1\" or \"v2\"",
 			Ignorables: []support.Message{
 				{
 					Severity: support.ErrorSev,
@@ -197,8 +196,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			},
 		},
 		{
-			Scenario:   "values.yaml does not exist",
-			RuleText:   "values.yaml file does not exist",
+			Scenario: "values.yaml does not exist",
+			RuleText: "error_lint_ignore=file does not exist",
 			Ignorables: []support.Message{
 				{
 					Severity: support.InfoSev,
@@ -208,8 +207,8 @@ func TestRule_ShouldKeepMessage(t *testing.T) {
 			},
 		},
 		{
-			Scenario:   "missing dependencies in chart directory",
-			RuleText:   "error_lint_ignore=chart metadata is missing these dependencies: mariadb",
+			Scenario: "missing dependencies in chart directory",
+			RuleText: "error_lint_ignore=chart directory is missing these dependencies: mariadb",
 			Ignorables: []support.Message{
 				{
 					Severity: support.WarningSev,
