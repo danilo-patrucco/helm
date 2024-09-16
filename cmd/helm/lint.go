@@ -80,7 +80,6 @@ func newLintCmd(out io.Writer) *cobra.Command {
 					})
 				}
 			}
-
 			client.Namespace = settings.Namespace()
 			vals, err := valueOpts.MergeValues(getter.All(settings))
 			if err != nil {
@@ -151,7 +150,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&client.Quiet, "quiet", false, "print only warnings and errors")
 	f.BoolVar(&client.SkipSchemaValidation, "skip-schema-validation", false, "if set, disables JSON schema validation")
 	f.StringVar(&kubeVersion, "kube-version", "", "Kubernetes version used for capabilities and deprecation checks")
-	f.StringVar(&lintIgnoreFile, "lint-ignore-file", "", "path to .helmlintignore file to specify ignore patterns")
+	f.StringVar(&lintIgnoreFile, "lint-ignore-file", os.Getenv("HELM_LINT_CONFIG_FILE"), "path to .helmlintignore file to specify ignore patterns")
 	addValueOptionsFlags(f, valueOpts)
 
 	return cmd
