@@ -47,6 +47,8 @@ const defaultBurstLimit = 100
 // defaultQPS sets the default QPS value to 0 to use library defaults unless specified
 const defaultQPS = float32(0)
 
+const defaultLintConfigFile = string(".helmlintconfig.yaml")
+
 // EnvSettings describes all of the environment settings.
 type EnvSettings struct {
 	namespace string
@@ -110,7 +112,7 @@ func New() *EnvSettings {
 		RepositoryCache:           envOr("HELM_REPOSITORY_CACHE", helmpath.CachePath("repository")),
 		BurstLimit:                envIntOr("HELM_BURST_LIMIT", defaultBurstLimit),
 		QPS:                       envFloat32Or("HELM_QPS", defaultQPS),
-		LintConfigFile:            os.Getenv("HELM_LINT_CONFIG_FILE"),
+		LintConfigFile:            envOr("HELM_LINT_CONFIG_FILE", defaultLintConfigFile),
 	}
 	env.Debug, _ = strconv.ParseBool(os.Getenv("HELM_DEBUG"))
 
@@ -162,7 +164,7 @@ func (s *EnvSettings) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.RepositoryCache, "repository-cache", s.RepositoryCache, "path to the file containing cached repository indexes")
 	fs.IntVar(&s.BurstLimit, "burst-limit", s.BurstLimit, "client-side default throttling limit")
 	fs.Float32Var(&s.QPS, "qps", s.QPS, "queries per second used when communicating with the Kubernetes API, not including bursting")
-	fs.StringVar(&s.LintConfigFile, "lint-config-file", s.LintConfigFile, "path to .helmlintconfig file to specify ignore patterns")
+	fs.StringVar(&s.LintConfigFile, "lint-config-file", s.LintConfigFile, "path to .helmlintconfig.yaml file to specify ignore patterns")
 }
 
 func envOr(name, def string) string {

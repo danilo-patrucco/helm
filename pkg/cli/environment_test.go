@@ -60,7 +60,7 @@ func TestEnvSettings(t *testing.T) {
 		kubeTLSServer  string
 		burstLimit     int
 		qps            float32
-		lintConfigfile string
+		lintConfigFile string
 	}{
 		{
 			name:       "defaults",
@@ -82,7 +82,7 @@ func TestEnvSettings(t *testing.T) {
 			kubeCaFile:     "/tmp/ca.crt",
 			kubeTLSServer:  "example.org",
 			kubeInsecure:   true,
-			lintConfigfile: "/tmp/.helmlintconfig.yaml",
+			lintConfigFile: "/tmp/.helmlintconfig.yaml",
 		},
 		{
 			name:           "with envvars set",
@@ -97,7 +97,7 @@ func TestEnvSettings(t *testing.T) {
 			kubeCaFile:     "/tmp/ca.crt",
 			kubeTLSServer:  "example.org",
 			kubeInsecure:   true,
-			lintConfigfile: "/tmp/.helmlintconfig.yaml",
+			lintConfigFile: "/tmp/.helmlintconfig.yaml",
 		},
 		{
 			name:           "with flags and envvars set",
@@ -113,7 +113,7 @@ func TestEnvSettings(t *testing.T) {
 			kubeCaFile:     "/my/ca.crt",
 			kubeTLSServer:  "example.org",
 			kubeInsecure:   true,
-			lintConfigfile: "/tmp/.helmlintconfig.yaml",
+			lintConfigFile: "/tmp/.helmlintconfig.yaml",
 		},
 		{
 			name:       "invalid kubeconfig",

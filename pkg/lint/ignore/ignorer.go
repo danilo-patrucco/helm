@@ -7,7 +7,7 @@ import (
 )
 
 // DefaultIgnoreFileName is the name of the lint ignore file
-const DefaultIgnoreFileName = ".helmlintconfig"
+const DefaultIgnoreFileName = ".helmlintconfig.yaml"
 
 var debugFn func(format string, v ...interface{})
 
